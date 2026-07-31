@@ -7,7 +7,7 @@ import javax.inject.Inject
 class DeleteListUseCase @Inject constructor(
     private val repository: GroceryListRepository
 ) {
-    suspend operator fun invoke(list: GroceryList) {
-        repository.deleteList(list)
+    suspend operator fun invoke(id: Long) {
+        repository.delete(id)
     }
 }

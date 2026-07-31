@@ -9,6 +9,6 @@ class GetListsUseCase @Inject constructor(
     private val repository: GroceryListRepository
 ) {
     operator fun invoke(): Flow<List<GroceryList>> {
-        return repository.getAllLists()
+        return repository.observeLists()
     }
 }

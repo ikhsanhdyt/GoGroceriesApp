@@ -9,24 +9,7 @@ import javax.inject.Inject
 class AddItemUseCase @Inject constructor(
     private val repository: GroceryListRepository
 ) {
-    suspend operator fun invoke(
-        listId: Long,
-        name: String,
-        quantity: Double,
-        unit: UnitOfMeasure,
-        categoryId: Long? = null,
-        estimatedPrice: Money? = null,
-        note: String? = null
-    ): Long {
-        val item = GroceryItem(
-            listId = listId,
-            name = name,
-            quantity = quantity,
-            unit = unit,
-            categoryId = categoryId,
-            estimatedPrice = estimatedPrice,
-            note = note
-        )
-        return repository.insertItem(item)
+    suspend operator fun invoke(item: GroceryItem): Long {
+        return repository.addItem(item)
     }
 }

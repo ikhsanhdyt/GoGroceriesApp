@@ -7,8 +7,7 @@ import javax.inject.Inject
 class CreateListUseCase @Inject constructor(
     private val repository: GroceryListRepository
 ) {
-    suspend operator fun invoke(name: String): Long {
-        val list = GroceryList(name = name)
-        return repository.insertList(list)
+    suspend operator fun invoke(name: String, budgetCents: Long? = null): Long {
+        return repository.create(name = name, budgetCents = budgetCents)
     }
 }

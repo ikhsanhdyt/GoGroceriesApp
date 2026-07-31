@@ -8,6 +8,6 @@ class UpdateListUseCase @Inject constructor(
     private val repository: GroceryListRepository
 ) {
     suspend operator fun invoke(list: GroceryList) {
-        repository.updateList(list)
+        repository.update(list)
     }
 }

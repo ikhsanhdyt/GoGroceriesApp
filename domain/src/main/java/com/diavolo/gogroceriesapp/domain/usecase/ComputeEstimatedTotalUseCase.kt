@@ -5,10 +5,10 @@ import com.diavolo.gogroceriesapp.domain.Money
 import javax.inject.Inject
 
 class ComputeEstimatedTotalUseCase @Inject constructor() {
-    operator fun invoke(items: List<GroceryItem>): Money {
-        return items.fold(Money.zero()) { acc, item ->
-            val itemTotal = item.estimatedPrice?.amount ?: 0L
-            acc + Money(itemTotal)
+    operator fun invoke(items: List<GroceryItem>): Long {
+        return items.sumOf { item ->
+            val price = item.estimatedPriceCents ?: 0L
+            (price * item.quantity).toLong()
         }
     }
 }

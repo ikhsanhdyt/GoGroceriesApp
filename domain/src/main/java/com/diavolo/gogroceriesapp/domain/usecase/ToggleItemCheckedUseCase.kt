@@ -7,6 +7,6 @@ class ToggleItemCheckedUseCase @Inject constructor(
     private val repository: GroceryListRepository
 ) {
     suspend operator fun invoke(itemId: Long, isChecked: Boolean) {
-        repository.toggleItemChecked(itemId, isChecked)
+        repository.toggleChecked(itemId = itemId, checked = isChecked)
     }
 }

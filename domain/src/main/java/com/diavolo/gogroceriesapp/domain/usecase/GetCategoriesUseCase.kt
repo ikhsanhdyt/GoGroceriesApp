@@ -9,6 +9,6 @@ class GetCategoriesUseCase @Inject constructor(
     private val repository: CategoryRepository
 ) {
     operator fun invoke(): Flow<List<Category>> {
-        return repository.getAllCategories()
+        return repository.observeCategories()
     }
 }
