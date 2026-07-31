@@ -1,7 +1,7 @@
 package com.diavolo.gogroceriesapp.domain.usecase
 
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
-import com.diavolo.gogroceriesapp.core.domain.model.Money
+import com.diavolo.gogroceriesapp.domain.Money
 import javax.inject.Inject
 
 class ComputeEstimatedTotalUseCase @Inject constructor() {

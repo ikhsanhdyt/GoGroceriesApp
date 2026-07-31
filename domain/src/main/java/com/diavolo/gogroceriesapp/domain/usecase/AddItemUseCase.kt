@@ -1,5 +1,6 @@
 package com.diavolo.gogroceriesapp.domain.usecase
 
+import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
 import com.diavolo.gogroceriesapp.domain.repository.GroceryListRepository
@@ -14,7 +15,7 @@ class AddItemUseCase @Inject constructor(
         quantity: Double,
         unit: UnitOfMeasure,
         categoryId: Long? = null,
-        estimatedPrice: com.diavolo.gogroceriesapp.core.domain.model.Money? = null,
+        estimatedPrice: Money? = null,
         note: String? = null
     ): Long {
         val item = GroceryItem(

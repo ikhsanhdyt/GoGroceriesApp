@@ -1,5 +1,6 @@
 [versions]
 agp = "8.7.0"
+javax-inject = "1"
 kotlin = "2.1.0"
 ksp = "2.1.0-1.0.28"
 compose-bom = "2024.10.00"
@@ -33,6 +34,7 @@ compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview"
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-material3-icon = { module = "androidx.compose.material:material-icons-extended" }
+javax-inject = { module = "javax.inject:javax.inject", version.ref = "javax-inject" }
 navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }

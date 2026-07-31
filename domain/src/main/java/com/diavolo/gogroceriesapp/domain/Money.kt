@@ -2,6 +2,8 @@ package com.diavolo.gogroceriesapp.domain
 
 @JvmInline
 value class Money(val amount: Long) {
+    operator fun plus(other: Money): Money = Money(this.amount + other.amount)
+
     val toDouble: Double
         get() = amount.toDouble()
 

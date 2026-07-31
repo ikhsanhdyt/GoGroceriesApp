@@ -1,5 +1,7 @@
 package com.diavolo.gogroceriesapp.domain.model
 
+import com.diavolo.gogroceriesapp.domain.Money
+
 data class GroceryItem(
     val id: Long = 0,
     val listId: Long,
