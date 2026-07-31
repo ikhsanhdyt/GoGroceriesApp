@@ -1,6 +1,6 @@
-package com.diavolo.gogroceriesapp.core.domain.repository
+package com.diavolo.gogroceriesapp.domain.repository
 
-import com.diavolo.gogroceriesapp.core.domain.model.Category
+import com.diavolo.gogroceriesapp.domain.model.Category
 import kotlinx.coroutines.flow.Flow
 
 interface CategoryRepository {

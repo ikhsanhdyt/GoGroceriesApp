@@ -1,4 +1,4 @@
-package com.diavolo.gogroceriesapp.core
+package com.diavolo.gogroceriesapp.domain
 
 @JvmInline
 value class Money(val amount: Long) {

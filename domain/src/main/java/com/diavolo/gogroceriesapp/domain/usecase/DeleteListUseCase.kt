@@ -1,7 +1,7 @@
-package com.diavolo.gogroceriesapp.core.domain.usecase
+package com.diavolo.gogroceriesapp.domain.usecase
 
-import com.diavolo.gogroceriesapp.core.domain.model.GroceryList
-import com.diavolo.gogroceriesapp.core.domain.repository.GroceryListRepository
+import com.diavolo.gogroceriesapp.domain.model.GroceryList
+import com.diavolo.gogroceriesapp.domain.repository.GroceryListRepository
 import javax.inject.Inject
 
 class DeleteListUseCase @Inject constructor(

@@ -1,4 +1,4 @@
-package com.diavolo.gogroceriesapp.core.domain.model
+package com.diavolo.gogroceriesapp.domain.model
 
 data class GroceryItem(
     val id: Long = 0,

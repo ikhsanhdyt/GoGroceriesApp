@@ -1,7 +1,7 @@
-package com.diavolo.gogroceriesapp.core.domain.usecase
+package com.diavolo.gogroceriesapp.domain.usecase
 
-import com.diavolo.gogroceriesapp.core.domain.model.Category
-import com.diavolo.gogroceriesapp.core.domain.repository.CategoryRepository
+import com.diavolo.gogroceriesapp.domain.model.Category
+import com.diavolo.gogroceriesapp.domain.repository.CategoryRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 

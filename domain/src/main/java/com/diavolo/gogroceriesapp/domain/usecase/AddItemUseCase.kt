@@ -1,7 +1,8 @@
-package com.diavolo.gogroceriesapp.core.domain.usecase
+package com.diavolo.gogroceriesapp.domain.usecase
 
-import com.diavolo.gogroceriesapp.core.domain.model.GroceryItem
-import com.diavolo.gogroceriesapp.core.domain.repository.GroceryListRepository
+import com.diavolo.gogroceriesapp.domain.model.GroceryItem
+import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
+import com.diavolo.gogroceriesapp.domain.repository.GroceryListRepository
 import javax.inject.Inject
 
 class AddItemUseCase @Inject constructor(
@@ -11,7 +12,7 @@ class AddItemUseCase @Inject constructor(
         listId: Long,
         name: String,
         quantity: Double,
-        unit: com.diavolo.gogroceriesapp.core.domain.model.UnitOfMeasure,
+        unit: UnitOfMeasure,
         categoryId: Long? = null,
         estimatedPrice: com.diavolo.gogroceriesapp.core.domain.model.Money? = null,
         note: String? = null

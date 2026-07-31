@@ -28,3 +28,4 @@ dependencyResolutionManagement {
 rootProject.name = "GoGroceriesApp"
 include(":app")
 include(":core")
+include(":domain")
