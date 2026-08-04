@@ -21,8 +21,8 @@ class GroceryListRepositoryImpl @Inject constructor(
 ) : GroceryListRepository {
 
     override fun observeLists(): Flow<List<GroceryList>> {
-        return listDao.observeAll().map { entities ->
-            entities.map { it.toDomain() }
+        return listDao.observeAllWithItems().map { relations ->
+            relations.map { it.toDomain() }
         }
     }
 
@@ -32,13 +32,13 @@ class GroceryListRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun create(name: String, budgetCents: Long?): Long =
+    override suspend fun create(name: String, budgetRupiah: Long?): Long =
         withContext(Dispatchers.IO) {
             val now = System.currentTimeMillis()
             val entity = GroceryListEntity(
                 name = name,
                 status = ListStatus.Draft.name,
-                budgetCents = budgetCents,
+                budgetRupiah = budgetRupiah,
                 createdAt = now,
                 updatedAt = now
             )
@@ -52,7 +52,7 @@ class GroceryListRepositoryImpl @Inject constructor(
             id = list.id,
             name = list.name,
             status = list.status.name,
-            budgetCents = list.budgetCents,
+            budgetRupiah = list.budgetRupiah,
             createdAt = list.createdAt,
             updatedAt = now
         )

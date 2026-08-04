@@ -1,8 +1,6 @@
 package com.diavolo.gogroceriesapp.domain.usecase
 
-import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
-import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
 import com.diavolo.gogroceriesapp.domain.repository.GroceryListRepository
 import javax.inject.Inject
 

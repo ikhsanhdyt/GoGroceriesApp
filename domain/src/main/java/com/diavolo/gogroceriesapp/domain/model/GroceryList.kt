@@ -4,7 +4,7 @@ data class GroceryList(
     val id: Long = 0,
     val name: String,
     val status: ListStatus,
-    val budgetCents: Long?,
+    val budgetRupiah: Long?,
     val createdAt: Long,
     val updatedAt: Long,
     val items: List<GroceryItem> = emptyList()

@@ -12,8 +12,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GroceryListDao {
+    @Transaction
     @Query("SELECT * FROM grocery_lists ORDER BY updatedAt DESC")
-    fun observeAll(): Flow<List<GroceryListEntity>>
+    fun observeAllWithItems(): Flow<List<ListWithItems>>
 
     @Transaction
     @Query("SELECT * FROM grocery_lists WHERE id = :id")

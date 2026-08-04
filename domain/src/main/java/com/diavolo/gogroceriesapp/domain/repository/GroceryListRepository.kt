@@ -9,7 +9,7 @@ interface GroceryListRepository {
 
     fun observeListWithItems(id: Long): Flow<GroceryList?>
 
-    suspend fun create(name: String, budgetCents: Long?): Long
+    suspend fun create(name: String, budgetRupiah: Long?): Long
 
     suspend fun update(list: GroceryList)
 

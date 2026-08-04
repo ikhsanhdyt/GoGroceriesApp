@@ -1,12 +1,13 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
 
 android {
-    namespace = "com.diavolo.gogroceriesapp.data"
+    namespace = "com.diavolo.gogroceriesapp.feature.home"
     compileSdk = 35
 
     defaultConfig {
@@ -17,31 +18,29 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlin {
         jvmToolchain(17)
     }
-}
 
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
+    buildFeatures {
+        compose = true
+    }
 }
 
 dependencies {
-    // 1. Link to your pure Kotlin business logic
     implementation(project(":domain"))
 
-    // 2. Room Database
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    ksp(libs.room.compiler)
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.material3.icon)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // 3. Dependency Injection (Hilt)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
 
-    // 4. Coroutines (Android specific for Room/Data mapping if needed)
     implementation(libs.kotlinx.coroutines.android)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.mockk)
 }

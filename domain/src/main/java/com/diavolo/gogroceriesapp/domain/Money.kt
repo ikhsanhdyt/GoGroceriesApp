@@ -1,14 +1,16 @@
 package com.diavolo.gogroceriesapp.domain
 
+import kotlin.math.roundToLong
+
 @JvmInline
-value class Money(val amount: Long) {
-    operator fun plus(other: Money): Money = Money(this.amount + other.amount)
+value class Money(val rupiah: Long) {
+    operator fun plus(other: Money): Money = Money(rupiah + other.rupiah)
 
     val toDouble: Double
-        get() = amount.toDouble()
+        get() = rupiah.toDouble()
 
     override fun toString(): String {
-        val formatted = amount.toString()
+        val formatted = rupiah.toString()
             .reversed()
             .chunked(3)
             .joinToString(".")
@@ -18,7 +20,7 @@ value class Money(val amount: Long) {
 
     companion object {
         fun fromRupiah(rupiah: Double): Money {
-            return Money(rupiah.toLong())
+            return Money(rupiah.roundToLong())
         }
 
         fun zero(): Money = Money(0)
