@@ -64,6 +64,7 @@ import com.diavolo.gogroceriesapp.domain.model.ListStatus
 
 @Composable
 fun HomeRoute(
+    onListClick: (Long) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -82,7 +83,8 @@ fun HomeRoute(
     HomeScreen(
         uiState = uiState,
         onCreateListClick = openCreateSheet,
-        onRetryClick = viewModel::retryLoading
+        onRetryClick = viewModel::retryLoading,
+        onListClick = onListClick
     )
 
     if (showCreateSheet) {
@@ -101,6 +103,7 @@ fun HomeScreen(
     uiState: HomeUiState,
     onCreateListClick: () -> Unit,
     onRetryClick: () -> Unit,
+    onListClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -140,18 +143,19 @@ fun HomeScreen(
     ) { contentPadding ->
         when {
             uiState.isLoading -> LoadingContent(contentPadding)
-            uiState.lists.isEmpty() -> EmptyListsContent(
-                contentPadding = contentPadding,
-                onCreateListClick = onCreateListClick
-            )
             uiState.loadError != null -> LoadErrorContent(
                 contentPadding = contentPadding,
                 message = uiState.loadError,
                 onRetryClick = onRetryClick
             )
+            uiState.lists.isEmpty() -> EmptyListsContent(
+                contentPadding = contentPadding,
+                onCreateListClick = onCreateListClick
+            )
             else -> HomeContent(
                 lists = uiState.lists,
-                contentPadding = contentPadding
+                contentPadding = contentPadding,
+                onListClick = onListClick
             )
         }
     }
@@ -258,7 +262,8 @@ private fun EmptyListsContent(
 @Composable
 private fun HomeContent(
     lists: List<GroceryList>,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    onListClick: (Long) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -278,18 +283,25 @@ private fun HomeContent(
             )
         }
         items(count = lists.size, key = { index -> lists[index].id }) { index ->
-            GroceryListCard(list = lists[index])
+            GroceryListCard(
+                list = lists[index],
+                onClick = { onListClick(lists[index].id) }
+            )
         }
     }
 }
 
 @Composable
-private fun GroceryListCard(list: GroceryList) {
+private fun GroceryListCard(
+    list: GroceryList,
+    onClick: () -> Unit
+) {
     val totalItems = list.items.size
     val completedItems = list.items.count { it.isChecked }
     val progress = if (totalItems == 0) 0f else completedItems.toFloat() / totalItems
 
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
