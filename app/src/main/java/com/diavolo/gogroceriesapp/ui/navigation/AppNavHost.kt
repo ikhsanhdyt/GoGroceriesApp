@@ -2,7 +2,7 @@ package com.diavolo.gogroceriesapp.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavType
+import androidx.navigation.NavType.Companion.LongType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -34,7 +34,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         composable(
             route = LIST_DETAIL_ROUTE,
             arguments = listOf(
-                navArgument(LIST_ID_ARGUMENT) { type = NavType.LongType }
+                navArgument(LIST_ID_ARGUMENT) { type = LongType }
             )
         ) { backStackEntry ->
             val listId = backStackEntry.arguments?.getLong(LIST_ID_ARGUMENT)

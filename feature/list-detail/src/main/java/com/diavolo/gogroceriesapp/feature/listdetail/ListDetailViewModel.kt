@@ -4,28 +4,39 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.diavolo.gogroceriesapp.domain.model.Category
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
+import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
+import com.diavolo.gogroceriesapp.domain.usecase.AddItemUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.ComputeEstimatedTotalUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetCategoriesUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetListUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+sealed interface ListDetailEvent {
+    data object ItemAdded : ListDetailEvent
+}
 
 @HiltViewModel
 class ListDetailViewModel @Inject constructor(
     private val getListUseCase: GetListUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
-    private val computeEstimatedTotal: ComputeEstimatedTotalUseCase
+    private val computeEstimatedTotal: ComputeEstimatedTotalUseCase,
+    private val addItemUseCase: AddItemUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ListDetailUiState())
     val uiState: StateFlow<ListDetailUiState> = _uiState.asStateFlow()
+    private val eventChannel = Channel<ListDetailEvent>(Channel.BUFFERED)
+    val events = eventChannel.receiveAsFlow()
 
     private var currentListId: Long? = null
     private var observationJob: Job? = null
@@ -47,8 +58,11 @@ class ListDetailViewModel @Inject constructor(
                     ListDetailUiState(
                         isLoading = false,
                         list = list,
+                        categories = categories,
                         itemGroups = groupItems(list.items, categories),
-                        estimatedTotal = computeEstimatedTotal(list.items)
+                        estimatedTotal = computeEstimatedTotal(list.items),
+                        isAddingItem = _uiState.value.isAddingItem,
+                        addItemError = _uiState.value.addItemError
                     )
                 }
             }
@@ -68,6 +82,53 @@ class ListDetailViewModel @Inject constructor(
         currentListId?.let { listId ->
             currentListId = null
             loadList(listId)
+        }
+    }
+
+    fun clearAddItemError() {
+        _uiState.value = _uiState.value.copy(addItemError = null)
+    }
+
+    fun addItem(
+        name: String,
+        quantity: Double,
+        unit: UnitOfMeasure,
+        categoryId: Long?,
+        estimatedPriceRupiah: Long?
+    ) {
+        val list = _uiState.value.list ?: return
+        if (name.isBlank() || quantity <= 0 || _uiState.value.isAddingItem) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isAddingItem = true,
+                addItemError = null
+            )
+            val nextPosition = (list.items.maxOfOrNull(GroceryItem::position) ?: -1) + 1
+            runCatching {
+                addItemUseCase(
+                    GroceryItem(
+                        listId = list.id,
+                        categoryId = categoryId,
+                        name = name.trim(),
+                        quantity = quantity,
+                        unit = unit,
+                        estimatedPriceRupiah = estimatedPriceRupiah,
+                        actualPriceRupiah = null,
+                        isChecked = false,
+                        notes = null,
+                        position = nextPosition
+                    )
+                )
+            }.onSuccess {
+                _uiState.value = _uiState.value.copy(isAddingItem = false)
+                eventChannel.send(ListDetailEvent.ItemAdded)
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    isAddingItem = false,
+                    addItemError = "Couldn't add this item. Please try again."
+                )
+            }
         }
     }
 

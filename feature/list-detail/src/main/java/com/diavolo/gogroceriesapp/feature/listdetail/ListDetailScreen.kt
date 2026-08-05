@@ -16,42 +16,60 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.diavolo.gogroceriesapp.domain.Money
+import com.diavolo.gogroceriesapp.domain.model.Category
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
 import com.diavolo.gogroceriesapp.domain.model.ListStatus
+import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
 
 @Composable
 fun ListDetailRoute(
@@ -60,16 +78,37 @@ fun ListDetailRoute(
     viewModel: ListDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showAddItemSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(listId) {
         viewModel.loadList(listId)
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            if (event is ListDetailEvent.ItemAdded) showAddItemSheet = false
+        }
+    }
+
     ListDetailScreen(
         uiState = uiState,
         onBackClick = onBackClick,
-        onRetryClick = viewModel::retry
+        onRetryClick = viewModel::retry,
+        onAddItemClick = {
+            viewModel.clearAddItemError()
+            showAddItemSheet = true
+        }
     )
+
+    if (showAddItemSheet) {
+        AddItemSheet(
+            categories = uiState.categories,
+            isAdding = uiState.isAddingItem,
+            errorMessage = uiState.addItemError,
+            onDismiss = { showAddItemSheet = false },
+            onAddItem = viewModel::addItem
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,6 +117,7 @@ fun ListDetailScreen(
     uiState: ListDetailUiState,
     onBackClick: () -> Unit,
     onRetryClick: () -> Unit,
+    onAddItemClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -104,6 +144,17 @@ fun ListDetailScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
+        },
+        floatingActionButton = {
+            if (uiState.list?.items?.isNotEmpty() == true) {
+                ExtendedFloatingActionButton(
+                    onClick = onAddItemClick,
+                    icon = {
+                        Icon(Icons.Outlined.Add, contentDescription = null)
+                    },
+                    text = { Text("Add item") }
+                )
+            }
         }
     ) { contentPadding ->
         when {
@@ -124,7 +175,8 @@ fun ListDetailScreen(
             )
             uiState.list != null -> DetailContent(
                 uiState = uiState,
-                contentPadding = contentPadding
+                contentPadding = contentPadding,
+                onAddItemClick = onAddItemClick
             )
         }
     }
@@ -181,7 +233,8 @@ private fun MessageContent(
 @Composable
 private fun DetailContent(
     uiState: ListDetailUiState,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    onAddItemClick: () -> Unit
 ) {
     val list = requireNotNull(uiState.list)
 
@@ -204,7 +257,7 @@ private fun DetailContent(
 
         if (uiState.itemGroups.isEmpty()) {
             item(key = "empty") {
-                EmptyItemsCard()
+                EmptyItemsCard(onAddItemClick)
             }
         } else {
             uiState.itemGroups.forEach { group ->
@@ -321,7 +374,7 @@ private fun StatusBadge(status: ListStatus) {
 }
 
 @Composable
-private fun EmptyItemsCard() {
+private fun EmptyItemsCard(onAddItemClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -354,6 +407,12 @@ private fun EmptyItemsCard() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+            Spacer(Modifier.height(20.dp))
+            Button(onClick = onAddItemClick) {
+                Icon(Icons.Outlined.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Add first item")
+            }
         }
     }
 }
@@ -410,6 +469,251 @@ private fun GroceryItemCard(item: GroceryItem) {
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddItemSheet(
+    categories: List<Category>,
+    isAdding: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onAddItem: (
+        name: String,
+        quantity: Double,
+        unit: UnitOfMeasure,
+        categoryId: Long?,
+        estimatedPriceRupiah: Long?
+    ) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var quantity by remember { mutableStateOf("1") }
+    var estimatedPrice by remember { mutableStateOf("") }
+    var selectedUnit by remember { mutableStateOf(UnitOfMeasure.PIECE) }
+    var selectedCategory by remember { mutableStateOf<Category?>(null) }
+    var unitMenuExpanded by remember { mutableStateOf(false) }
+    var categoryMenuExpanded by remember { mutableStateOf(false) }
+    var submitted by remember { mutableStateOf(false) }
+
+    val parsedQuantity = quantity.toDoubleOrNull()
+    val quantityIsInvalid = parsedQuantity == null || parsedQuantity <= 0
+    val parsedPrice = estimatedPrice.toLongOrNull()
+    val priceIsInvalid = estimatedPrice.isNotBlank() && parsedPrice == null
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = "Add a grocery item",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Add the essentials now. You can refine the item later.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Item name") },
+                placeholder = { Text("e.g. Organic bananas") },
+                singleLine = true,
+                isError = submitted && name.isBlank(),
+                supportingText = if (submitted && name.isBlank()) {
+                    { Text("Enter an item name.") }
+                } else {
+                    null
+                },
+                colors = addItemTextFieldColors()
+            )
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = quantity,
+                    onValueChange = { value ->
+                        quantity = value.filter { it.isDigit() || it == '.' }
+                    },
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Quantity") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    isError = submitted && quantityIsInvalid,
+                    supportingText = if (submitted && quantityIsInvalid) {
+                        { Text("Enter more than 0.") }
+                    } else {
+                        null
+                    },
+                    colors = addItemTextFieldColors()
+                )
+
+                ExposedDropdownMenuBox(
+                    expanded = unitMenuExpanded,
+                    onExpandedChange = { unitMenuExpanded = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = selectedUnit.displayName(),
+                        onValueChange = {},
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        readOnly = true,
+                        label = { Text("Unit") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(unitMenuExpanded)
+                        },
+                        colors = addItemTextFieldColors()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = unitMenuExpanded,
+                        onDismissRequest = { unitMenuExpanded = false }
+                    ) {
+                        UnitOfMeasure.entries.forEach { unit ->
+                            DropdownMenuItem(
+                                text = { Text(unit.displayName()) },
+                                onClick = {
+                                    selectedUnit = unit
+                                    unitMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            if (categories.isNotEmpty()) {
+                ExposedDropdownMenuBox(
+                    expanded = categoryMenuExpanded,
+                    onExpandedChange = { categoryMenuExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCategory?.name ?: "Other",
+                        onValueChange = {},
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(categoryMenuExpanded)
+                        },
+                        colors = addItemTextFieldColors()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = categoryMenuExpanded,
+                        onDismissRequest = { categoryMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Other") },
+                            onClick = {
+                                selectedCategory = null
+                                categoryMenuExpanded = false
+                            }
+                        )
+                        categories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category.name) },
+                                onClick = {
+                                    selectedCategory = category
+                                    categoryMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+
+            OutlinedTextField(
+                value = estimatedPrice,
+                onValueChange = { estimatedPrice = it.filter(Char::isDigit) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Estimated price (optional)") },
+                prefix = { Text("Rp ") },
+                placeholder = { Text("0") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = submitted && priceIsInvalid,
+                supportingText = {
+                    Text(
+                        if (submitted && priceIsInvalid) {
+                            "Enter a valid whole-rupiah amount."
+                        } else {
+                            "Price for the full quantity."
+                        }
+                    )
+                },
+                colors = addItemTextFieldColors()
+            )
+
+            errorMessage?.let { message ->
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+
+            Button(
+                onClick = {
+                    submitted = true
+                    if (name.isNotBlank() && !quantityIsInvalid && !priceIsInvalid) {
+                        onAddItem(
+                            name,
+                            requireNotNull(parsedQuantity),
+                            selectedUnit,
+                            selectedCategory?.id,
+                            parsedPrice
+                        )
+                    }
+                },
+                enabled = !isAdding,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(if (isAdding) "Adding item..." else "Add item")
+            }
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isAdding,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text("Cancel")
+            }
+        }
+    }
+}
+
+@Composable
+private fun addItemTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    focusedLabelColor = MaterialTheme.colorScheme.primary
+)
+
+private fun UnitOfMeasure.displayName(): String = name
+    .lowercase()
+    .replaceFirstChar(Char::uppercase)
 
 private fun formatQuantity(quantity: Double): String =
     if (quantity % 1.0 == 0.0) quantity.toLong().toString() else quantity.toString()
