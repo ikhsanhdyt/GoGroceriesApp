@@ -10,6 +10,7 @@ import com.diavolo.gogroceriesapp.domain.usecase.ComputeEstimatedTotalUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.DeleteItemUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetCategoriesUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetListUseCase
+import com.diavolo.gogroceriesapp.domain.usecase.StartShoppingUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.ToggleItemCheckedUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.UpdateItemUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +29,7 @@ sealed interface ListDetailEvent {
     data object ItemAdded : ListDetailEvent
     data object ItemUpdated : ListDetailEvent
     data object ItemDeleted : ListDetailEvent
+    data class ShoppingStarted(val listId: Long) : ListDetailEvent
     data class Message(val message: String) : ListDetailEvent
 }
 
@@ -39,7 +41,8 @@ class ListDetailViewModel @Inject constructor(
     private val addItemUseCase: AddItemUseCase,
     private val toggleItemCheckedUseCase: ToggleItemCheckedUseCase,
     private val updateItemUseCase: UpdateItemUseCase,
-    private val deleteItemUseCase: DeleteItemUseCase
+    private val deleteItemUseCase: DeleteItemUseCase,
+    private val startShoppingUseCase: StartShoppingUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ListDetailUiState())
@@ -73,7 +76,8 @@ class ListDetailViewModel @Inject constructor(
                         isAddingItem = _uiState.value.isAddingItem,
                         addItemError = _uiState.value.addItemError,
                         editItemError = _uiState.value.editItemError,
-                        updatingItemIds = _uiState.value.updatingItemIds
+                        updatingItemIds = _uiState.value.updatingItemIds,
+                        isStartingShopping = _uiState.value.isStartingShopping
                     )
                 }
             }
@@ -232,6 +236,27 @@ class ListDetailViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 updatingItemIds = _uiState.value.updatingItemIds - item.id
             )
+        }
+    }
+
+    fun startShopping() {
+        val list = _uiState.value.list ?: return
+        if (_uiState.value.isStartingShopping) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isStartingShopping = true)
+            runCatching {
+                startShoppingUseCase(list)
+            }.onSuccess {
+                eventChannel.send(ListDetailEvent.ShoppingStarted(list.id))
+            }.onFailure {
+                eventChannel.send(
+                    ListDetailEvent.Message(
+                        it.message ?: "Couldn't start shopping. Please try again."
+                    )
+                )
+            }
+            _uiState.value = _uiState.value.copy(isStartingShopping = false)
         }
     }
 

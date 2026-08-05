@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -82,6 +83,7 @@ import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
 fun ListDetailRoute(
     listId: Long,
     onBackClick: () -> Unit,
+    onShoppingStarted: (Long) -> Unit,
     viewModel: ListDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -100,6 +102,7 @@ fun ListDetailRoute(
                 ListDetailEvent.ItemAdded -> showAddItemSheet = false
                 ListDetailEvent.ItemUpdated -> editingItem = null
                 ListDetailEvent.ItemDeleted -> deletingItem = null
+                is ListDetailEvent.ShoppingStarted -> onShoppingStarted(event.listId)
                 is ListDetailEvent.Message -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
@@ -118,6 +121,7 @@ fun ListDetailRoute(
             editingItem = item
         },
         onDeleteItem = { item -> deletingItem = item },
+        onStartShoppingClick = viewModel::startShopping,
         onAddItemClick = {
             viewModel.clearAddItemError()
             showAddItemSheet = true
@@ -175,6 +179,7 @@ fun ListDetailScreen(
     onToggleItem: (GroceryItem) -> Unit,
     onEditItem: (GroceryItem) -> Unit,
     onDeleteItem: (GroceryItem) -> Unit,
+    onStartShoppingClick: () -> Unit,
     onAddItemClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -238,7 +243,8 @@ fun ListDetailScreen(
                 onAddItemClick = onAddItemClick,
                 onToggleItem = onToggleItem,
                 onEditItem = onEditItem,
-                onDeleteItem = onDeleteItem
+                onDeleteItem = onDeleteItem,
+                onStartShoppingClick = onStartShoppingClick
             )
         }
     }
@@ -299,7 +305,8 @@ private fun DetailContent(
     onAddItemClick: () -> Unit,
     onToggleItem: (GroceryItem) -> Unit,
     onEditItem: (GroceryItem) -> Unit,
-    onDeleteItem: (GroceryItem) -> Unit
+    onDeleteItem: (GroceryItem) -> Unit,
+    onStartShoppingClick: () -> Unit
 ) {
     val list = requireNotNull(uiState.list)
 
@@ -353,6 +360,32 @@ private fun DetailContent(
                         onToggleClick = { onToggleItem(item) },
                         onEditClick = { onEditItem(item) },
                         onDeleteClick = { onDeleteItem(item) }
+                    )
+                }
+            }
+        }
+
+        if (
+            list.items.isNotEmpty() &&
+            (list.status == ListStatus.Draft || list.status == ListStatus.Active)
+        ) {
+            item(key = "shopping-action") {
+                Button(
+                    onClick = onStartShoppingClick,
+                    enabled = !uiState.isStartingShopping,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Icon(Icons.Outlined.ShoppingCart, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        when {
+                            uiState.isStartingShopping -> "Opening shopping mode..."
+                            list.status == ListStatus.Active -> "Continue shopping"
+                            else -> "Start shopping"
+                        }
                     )
                 }
             }
