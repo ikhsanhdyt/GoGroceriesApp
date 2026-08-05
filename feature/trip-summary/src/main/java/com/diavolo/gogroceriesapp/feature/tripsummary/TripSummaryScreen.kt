@@ -46,6 +46,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.diavolo.gogroceriesapp.core.ui.LoadingStateContent
+import com.diavolo.gogroceriesapp.core.ui.MessageStateContent
 import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
@@ -109,22 +111,22 @@ fun TripSummaryScreen(
         }
     ) { contentPadding ->
         when {
-            uiState.isLoading -> LoadingContent(contentPadding)
-            uiState.errorMessage != null -> MessageContent(
+            uiState.isLoading -> LoadingStateContent(contentPadding)
+            uiState.errorMessage != null -> MessageStateContent(
                 contentPadding = contentPadding,
                 title = "Couldn't load this summary",
                 message = uiState.errorMessage,
                 actionLabel = "Try again",
                 onActionClick = onRetryClick
             )
-            uiState.isNotFound -> MessageContent(
+            uiState.isNotFound -> MessageStateContent(
                 contentPadding = contentPadding,
                 title = "Trip not found",
                 message = "This shopping list may have been deleted.",
                 actionLabel = "Go back",
                 onActionClick = onBackClick
             )
-            uiState.isUnavailable -> MessageContent(
+            uiState.isUnavailable -> MessageStateContent(
                 contentPadding = contentPadding,
                 title = "Trip is not completed",
                 message = "Finish shopping before opening its spending summary.",
@@ -491,54 +493,6 @@ private fun EmptySectionCard(message: String) {
             modifier = Modifier.padding(20.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-@Composable
-private fun LoadingContent(contentPadding: PaddingValues) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(contentPadding),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun MessageContent(
-    contentPadding: PaddingValues,
-    title: String,
-    message: String,
-    actionLabel: String,
-    onActionClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(contentPadding)
-            .padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(20.dp))
-        Button(onClick = onActionClick) {
-            Text(actionLabel)
-        }
     }
 }
 

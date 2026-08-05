@@ -58,6 +58,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.diavolo.gogroceriesapp.core.ui.LoadingStateContent
+import com.diavolo.gogroceriesapp.core.ui.MessageStateContent
 import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
@@ -191,22 +193,22 @@ fun ActiveShoppingScreen(
         }
     ) { contentPadding ->
         when {
-            uiState.isLoading -> LoadingContent(contentPadding)
-            uiState.errorMessage != null -> MessageContent(
+            uiState.isLoading -> LoadingStateContent(contentPadding)
+            uiState.errorMessage != null -> MessageStateContent(
                 contentPadding = contentPadding,
                 title = "Couldn't load shopping mode",
                 message = uiState.errorMessage,
                 actionLabel = "Try again",
                 onActionClick = onRetryClick
             )
-            uiState.isNotFound -> MessageContent(
+            uiState.isNotFound -> MessageStateContent(
                 contentPadding = contentPadding,
                 title = "List not found",
                 message = "This shopping list may have been deleted.",
                 actionLabel = "Go back",
                 onActionClick = onBackClick
             )
-            list?.status == ListStatus.Completed -> MessageContent(
+            list?.status == ListStatus.Completed -> MessageStateContent(
                 contentPadding = contentPadding,
                 title = "Shopping completed",
                 message = "This trip is already marked as completed.",
@@ -628,54 +630,6 @@ private fun FinishShoppingDialog(
             }
         }
     )
-}
-
-@Composable
-private fun LoadingContent(contentPadding: PaddingValues) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(contentPadding),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun MessageContent(
-    contentPadding: PaddingValues,
-    title: String,
-    message: String,
-    actionLabel: String,
-    onActionClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(contentPadding)
-            .padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(20.dp))
-        Button(onClick = onActionClick) {
-            Text(actionLabel)
-        }
-    }
 }
 
 private fun formatQuantity(quantity: Double): String =
