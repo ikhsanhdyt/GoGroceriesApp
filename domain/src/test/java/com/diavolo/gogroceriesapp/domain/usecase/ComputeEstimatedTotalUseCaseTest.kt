@@ -34,9 +34,28 @@ class ComputeEstimatedTotalUseCaseTest {
         assertEquals("Rp 1.250.000", Money(1_250_000).toString())
     }
 
+    @Test
+    fun `actual total uses actual unit prices and quantity`() {
+        val items = listOf(
+            groceryItem(
+                quantity = 2.0,
+                estimatedPriceRupiah = 10_000,
+                actualPriceRupiah = 12_500
+            ),
+            groceryItem(
+                quantity = 1.5,
+                estimatedPriceRupiah = 20_000,
+                actualPriceRupiah = 8_000
+            )
+        )
+
+        assertEquals(Money(37_000), ComputeActualTotalUseCase()(items))
+    }
+
     private fun groceryItem(
         quantity: Double,
-        estimatedPriceRupiah: Long?
+        estimatedPriceRupiah: Long?,
+        actualPriceRupiah: Long? = null
     ) = GroceryItem(
         listId = 1,
         categoryId = null,
@@ -44,7 +63,7 @@ class ComputeEstimatedTotalUseCaseTest {
         quantity = quantity,
         unit = UnitOfMeasure.PIECE,
         estimatedPriceRupiah = estimatedPriceRupiah,
-        actualPriceRupiah = null,
+        actualPriceRupiah = actualPriceRupiah,
         isChecked = false,
         notes = null,
         position = 0

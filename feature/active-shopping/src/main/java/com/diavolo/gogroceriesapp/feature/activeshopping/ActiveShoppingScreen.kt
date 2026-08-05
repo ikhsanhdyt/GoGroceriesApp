@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -31,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -52,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -70,6 +73,7 @@ fun ActiveShoppingRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showFinishDialog by remember { mutableStateOf(false) }
+    var pricingItem by remember { mutableStateOf<GroceryItem?>(null) }
 
     LaunchedEffect(listId) {
         viewModel.loadList(listId)
@@ -82,6 +86,7 @@ fun ActiveShoppingRoute(
                     showFinishDialog = false
                     onShoppingFinished()
                 }
+                ActiveShoppingEvent.PriceUpdated -> pricingItem = null
                 is ActiveShoppingEvent.Message -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
@@ -95,6 +100,10 @@ fun ActiveShoppingRoute(
         onBackClick = onBackClick,
         onRetryClick = viewModel::retry,
         onToggleItem = viewModel::toggleItem,
+        onPriceClick = { item ->
+            viewModel.clearPriceUpdateError()
+            pricingItem = item
+        },
         onFinishClick = { showFinishDialog = true }
     )
 
@@ -104,6 +113,18 @@ fun ActiveShoppingRoute(
             isFinishing = uiState.isFinishing,
             onDismiss = { showFinishDialog = false },
             onConfirm = viewModel::finishShopping
+        )
+    }
+
+    pricingItem?.let { item ->
+        ActualPriceDialog(
+            item = item,
+            isSaving = item.id in uiState.updatingItemIds,
+            errorMessage = uiState.priceUpdateError,
+            onDismiss = { pricingItem = null },
+            onSave = { actualPrice ->
+                viewModel.updateActualPrice(item, actualPrice)
+            }
         )
     }
 }
@@ -116,6 +137,7 @@ fun ActiveShoppingScreen(
     onBackClick: () -> Unit,
     onRetryClick: () -> Unit,
     onToggleItem: (GroceryItem) -> Unit,
+    onPriceClick: (GroceryItem) -> Unit,
     onFinishClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -160,7 +182,8 @@ fun ActiveShoppingScreen(
             if (list?.status == ListStatus.Active && list.items.isNotEmpty()) {
                 ShoppingBottomBar(
                     list = list,
-                    checkedSubtotal = uiState.checkedSubtotal,
+                    actualCheckedSubtotal = uiState.actualCheckedSubtotal,
+                    checkedItemsMissingPrice = uiState.checkedItemsMissingPrice,
                     isFinishing = uiState.isFinishing,
                     onFinishClick = onFinishClick
                 )
@@ -193,7 +216,8 @@ fun ActiveShoppingScreen(
             list != null -> ShoppingContent(
                 uiState = uiState,
                 contentPadding = contentPadding,
-                onToggleItem = onToggleItem
+                onToggleItem = onToggleItem,
+                onPriceClick = onPriceClick
             )
         }
     }
@@ -203,7 +227,8 @@ fun ActiveShoppingScreen(
 private fun ShoppingContent(
     uiState: ActiveShoppingUiState,
     contentPadding: PaddingValues,
-    onToggleItem: (GroceryItem) -> Unit
+    onToggleItem: (GroceryItem) -> Unit,
+    onPriceClick: (GroceryItem) -> Unit
 ) {
     val list = requireNotNull(uiState.list)
 
@@ -250,7 +275,8 @@ private fun ShoppingContent(
                 ShoppingItemCard(
                     item = item,
                     isUpdating = item.id in uiState.updatingItemIds,
-                    onToggleClick = { onToggleItem(item) }
+                    onToggleClick = { onToggleItem(item) },
+                    onPriceClick = { onPriceClick(item) }
                 )
             }
         }
@@ -310,7 +336,8 @@ private fun ShoppingProgressCard(
 private fun ShoppingItemCard(
     item: GroceryItem,
     isUpdating: Boolean,
-    onToggleClick: () -> Unit
+    onToggleClick: () -> Unit,
+    onPriceClick: () -> Unit
 ) {
     Card(
         onClick = onToggleClick,
@@ -372,11 +399,27 @@ private fun ShoppingItemCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                text = item.estimatedPriceRupiah?.let(::Money)?.toString() ?: "—",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            TextButton(
+                onClick = onPriceClick,
+                enabled = !isUpdating
+            ) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = item.actualPriceRupiah
+                            ?.let(::Money)
+                            ?.toString()
+                            ?: "Set price",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    if (item.actualPriceRupiah != null) {
+                        Text(
+                            text = "Actual / unit",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -384,7 +427,8 @@ private fun ShoppingItemCard(
 @Composable
 private fun ShoppingBottomBar(
     list: GroceryList,
-    checkedSubtotal: Money,
+    actualCheckedSubtotal: Money,
+    checkedItemsMissingPrice: Int,
     isFinishing: Boolean,
     onFinishClick: () -> Unit
 ) {
@@ -402,12 +446,12 @@ private fun ShoppingBottomBar(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Checked subtotal",
+                        text = "Actual checked subtotal",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = checkedSubtotal.toString(),
+                        text = actualCheckedSubtotal.toString(),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -416,6 +460,14 @@ private fun ShoppingBottomBar(
                     text = "$checkedItems/${list.items.size} checked",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (checkedItemsMissingPrice > 0) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "$checkedItemsMissingPrice checked ${if (checkedItemsMissingPrice == 1) "item needs" else "items need"} an actual price",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
             Spacer(Modifier.height(12.dp))
@@ -434,6 +486,94 @@ private fun ShoppingBottomBar(
 }
 
 @Composable
+private fun ActualPriceDialog(
+    item: GroceryItem,
+    isSaving: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onSave: (Long?) -> Unit
+) {
+    var price by remember(item.id, item.actualPriceRupiah) {
+        mutableStateOf(item.actualPriceRupiah?.toString().orEmpty())
+    }
+    var submitted by remember(item.id) { mutableStateOf(false) }
+    val parsedPrice = price.toLongOrNull()
+    val priceIsInvalid = price.isBlank() || parsedPrice == null
+
+    AlertDialog(
+        onDismissRequest = {
+            if (!isSaving) onDismiss()
+        },
+        title = { Text("Actual price for ${item.name}") },
+        text = {
+            Column {
+                Text(
+                    text = "Enter the price per ${item.unit.name.lowercase()}. Quantity: ${formatQuantity(item.quantity)}.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it.filter(Char::isDigit) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Actual unit price") },
+                    prefix = { Text("Rp ") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = submitted && priceIsInvalid,
+                    supportingText = {
+                        when {
+                            submitted && priceIsInvalid -> Text("Enter a valid whole-rupiah amount.")
+                            parsedPrice != null -> Text(
+                                "Item subtotal ${Money.fromRupiah(parsedPrice * item.quantity)}"
+                            )
+                            else -> Text("Used for the completed-trip total.")
+                        }
+                    }
+                )
+                errorMessage?.let { message ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                if (item.actualPriceRupiah != null) {
+                    TextButton(
+                        onClick = { onSave(null) },
+                        enabled = !isSaving,
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Clear actual price")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    submitted = true
+                    if (!priceIsInvalid) onSave(parsedPrice)
+                },
+                enabled = !isSaving
+            ) {
+                Text(if (isSaving) "Saving..." else "Save price")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isSaving
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
 private fun FinishShoppingDialog(
     list: GroceryList?,
     isFinishing: Boolean,
@@ -441,6 +581,24 @@ private fun FinishShoppingDialog(
     onConfirm: () -> Unit
 ) {
     val remaining = list?.items?.count { !it.isChecked } ?: 0
+    val missingPrices = list?.items?.count {
+        it.isChecked && it.actualPriceRupiah == null
+    } ?: 0
+    val finishMessage = buildList {
+        if (remaining == 0) {
+            add("All items are checked.")
+        } else {
+            add(
+                "$remaining ${if (remaining == 1) "item is" else "items are"} still unchecked."
+            )
+        }
+        if (missingPrices > 0) {
+            add(
+                "$missingPrices purchased ${if (missingPrices == 1) "item has" else "items have"} no actual price."
+            )
+        }
+        add("This trip will be marked completed.")
+    }.joinToString("\n\n")
 
     AlertDialog(
         onDismissRequest = {
@@ -451,13 +609,7 @@ private fun FinishShoppingDialog(
         },
         title = { Text("Finish shopping?") },
         text = {
-            Text(
-                if (remaining == 0) {
-                    "All items are checked. This trip will be marked completed."
-                } else {
-                    "$remaining ${if (remaining == 1) "item is" else "items are"} still unchecked. You can still finish this trip."
-                }
-            )
+            Text(finishMessage)
         },
         confirmButton = {
             TextButton(

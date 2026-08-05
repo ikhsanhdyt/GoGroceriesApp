@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.diavolo.gogroceriesapp.domain.model.Category
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
+import com.diavolo.gogroceriesapp.domain.usecase.ComputeActualTotalUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.ComputeEstimatedTotalUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.FinishShoppingUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetCategoriesUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetListUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.ToggleItemCheckedUseCase
+import com.diavolo.gogroceriesapp.domain.usecase.UpdateItemUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -23,6 +25,7 @@ import javax.inject.Inject
 
 sealed interface ActiveShoppingEvent {
     data object ShoppingFinished : ActiveShoppingEvent
+    data object PriceUpdated : ActiveShoppingEvent
     data class Message(val message: String) : ActiveShoppingEvent
 }
 
@@ -31,8 +34,10 @@ class ActiveShoppingViewModel @Inject constructor(
     private val getListUseCase: GetListUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val computeEstimatedTotalUseCase: ComputeEstimatedTotalUseCase,
+    private val computeActualTotalUseCase: ComputeActualTotalUseCase,
     private val toggleItemCheckedUseCase: ToggleItemCheckedUseCase,
-    private val finishShoppingUseCase: FinishShoppingUseCase
+    private val finishShoppingUseCase: FinishShoppingUseCase,
+    private val updateItemUseCase: UpdateItemUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ActiveShoppingUiState())
@@ -58,14 +63,17 @@ class ActiveShoppingViewModel @Inject constructor(
                 if (list == null) {
                     ActiveShoppingUiState(isLoading = false, isNotFound = true)
                 } else {
+                    val checkedItems = list.items.filter(GroceryItem::isChecked)
                     ActiveShoppingUiState(
                         isLoading = false,
                         list = list,
                         itemGroups = groupItems(list.items, categories),
                         estimatedTotal = computeEstimatedTotalUseCase(list.items),
-                        checkedSubtotal = computeEstimatedTotalUseCase(
-                            list.items.filter(GroceryItem::isChecked)
-                        ),
+                        actualCheckedSubtotal = computeActualTotalUseCase(checkedItems),
+                        checkedItemsMissingPrice = checkedItems.count {
+                            it.actualPriceRupiah == null
+                        },
+                        priceUpdateError = _uiState.value.priceUpdateError,
                         updatingItemIds = _uiState.value.updatingItemIds,
                         isFinishing = _uiState.value.isFinishing
                     )
@@ -90,6 +98,10 @@ class ActiveShoppingViewModel @Inject constructor(
         }
     }
 
+    fun clearPriceUpdateError() {
+        _uiState.value = _uiState.value.copy(priceUpdateError = null)
+    }
+
     fun toggleItem(item: GroceryItem) {
         if (item.id in _uiState.value.updatingItemIds) return
 
@@ -104,6 +116,29 @@ class ActiveShoppingViewModel @Inject constructor(
                     ActiveShoppingEvent.Message(
                         "Couldn't update ${item.name}. Please try again."
                     )
+                )
+            }
+            _uiState.value = _uiState.value.copy(
+                updatingItemIds = _uiState.value.updatingItemIds - item.id
+            )
+        }
+    }
+
+    fun updateActualPrice(item: GroceryItem, actualPriceRupiah: Long?) {
+        if (item.id in _uiState.value.updatingItemIds) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                priceUpdateError = null,
+                updatingItemIds = _uiState.value.updatingItemIds + item.id
+            )
+            runCatching {
+                updateItemUseCase(item.copy(actualPriceRupiah = actualPriceRupiah))
+            }.onSuccess {
+                eventChannel.send(ActiveShoppingEvent.PriceUpdated)
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    priceUpdateError = "Couldn't save the actual price. Please try again."
                 )
             }
             _uiState.value = _uiState.value.copy(
