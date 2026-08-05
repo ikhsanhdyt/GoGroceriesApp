@@ -20,14 +20,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -44,6 +43,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
@@ -79,6 +81,7 @@ fun ListDetailRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddItemSheet by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(listId) {
         viewModel.loadList(listId)
@@ -86,7 +89,12 @@ fun ListDetailRoute(
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
-            if (event is ListDetailEvent.ItemAdded) showAddItemSheet = false
+            when (event) {
+                ListDetailEvent.ItemAdded -> showAddItemSheet = false
+                is ListDetailEvent.ItemToggleFailed -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+            }
         }
     }
 
@@ -94,6 +102,8 @@ fun ListDetailRoute(
         uiState = uiState,
         onBackClick = onBackClick,
         onRetryClick = viewModel::retry,
+        snackbarHostState = snackbarHostState,
+        onToggleItem = viewModel::toggleItem,
         onAddItemClick = {
             viewModel.clearAddItemError()
             showAddItemSheet = true
@@ -117,6 +127,8 @@ fun ListDetailScreen(
     uiState: ListDetailUiState,
     onBackClick: () -> Unit,
     onRetryClick: () -> Unit,
+    snackbarHostState: SnackbarHostState,
+    onToggleItem: (GroceryItem) -> Unit,
     onAddItemClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -145,6 +157,7 @@ fun ListDetailScreen(
                 )
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if (uiState.list?.items?.isNotEmpty() == true) {
                 ExtendedFloatingActionButton(
@@ -176,7 +189,8 @@ fun ListDetailScreen(
             uiState.list != null -> DetailContent(
                 uiState = uiState,
                 contentPadding = contentPadding,
-                onAddItemClick = onAddItemClick
+                onAddItemClick = onAddItemClick,
+                onToggleItem = onToggleItem
             )
         }
     }
@@ -234,7 +248,8 @@ private fun MessageContent(
 private fun DetailContent(
     uiState: ListDetailUiState,
     contentPadding: PaddingValues,
-    onAddItemClick: () -> Unit
+    onAddItemClick: () -> Unit,
+    onToggleItem: (GroceryItem) -> Unit
 ) {
     val list = requireNotNull(uiState.list)
 
@@ -282,7 +297,11 @@ private fun DetailContent(
                     }
                 }
                 items(group.items, key = GroceryItem::id) { item ->
-                    GroceryItemCard(item)
+                    GroceryItemCard(
+                        item = item,
+                        isUpdating = item.id in uiState.updatingItemIds,
+                        onToggleClick = { onToggleItem(item) }
+                    )
                 }
             }
         }
@@ -418,9 +437,15 @@ private fun EmptyItemsCard(onAddItemClick: () -> Unit) {
 }
 
 @Composable
-private fun GroceryItemCard(item: GroceryItem) {
+private fun GroceryItemCard(
+    item: GroceryItem,
+    isUpdating: Boolean,
+    onToggleClick: () -> Unit
+) {
     Card(
+        onClick = onToggleClick,
         modifier = Modifier.fillMaxWidth(),
+        enabled = !isUpdating,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -431,26 +456,33 @@ private fun GroceryItemCard(item: GroceryItem) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = if (item.isChecked) {
-                    Icons.Outlined.CheckCircle
-                } else {
-                    Icons.Outlined.RadioButtonUnchecked
-                },
-                contentDescription = if (item.isChecked) "Completed" else "Not completed",
-                modifier = Modifier.size(26.dp),
-                tint = if (item.isChecked) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outline
-                }
-            )
+            if (isUpdating) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.5.dp
+                )
+            } else {
+                Checkbox(
+                    checked = item.isChecked,
+                    onCheckedChange = { onToggleClick() }
+                )
+            }
             Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
+                    textDecoration = if (item.isChecked) {
+                        TextDecoration.LineThrough
+                    } else {
+                        TextDecoration.None
+                    },
+                    color = if (item.isChecked) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -654,7 +686,7 @@ private fun AddItemSheet(
                         if (submitted && priceIsInvalid) {
                             "Enter a valid whole-rupiah amount."
                         } else {
-                            "Price for the full quantity."
+                            "Estimated price per unit."
                         }
                     )
                 },

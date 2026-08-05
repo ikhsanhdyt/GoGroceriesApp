@@ -6,6 +6,8 @@ import com.diavolo.gogroceriesapp.data.local.entity.GroceryItemEntity
 import com.diavolo.gogroceriesapp.data.local.entity.GroceryListEntity
 import com.diavolo.gogroceriesapp.data.local.entity.relations.ListWithItems
 import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
@@ -45,6 +47,15 @@ class GroceryListRepositoryImplTest {
 
         assertEquals(250_000L, list.budgetRupiah)
         assertEquals(listOf("First", "Second"), list.items.map { it.name })
+    }
+
+    @Test
+    fun `toggleChecked updates the requested item`() = runBlocking {
+        coEvery { itemDao.setChecked(id = 42, checked = true) } returns Unit
+
+        repository.toggleChecked(itemId = 42, checked = true)
+
+        coVerify(exactly = 1) { itemDao.setChecked(id = 42, checked = true) }
     }
 
     private fun groceryItem(

@@ -9,6 +9,7 @@ import com.diavolo.gogroceriesapp.domain.usecase.AddItemUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.ComputeEstimatedTotalUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetCategoriesUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetListUseCase
+import com.diavolo.gogroceriesapp.domain.usecase.ToggleItemCheckedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -23,6 +24,7 @@ import javax.inject.Inject
 
 sealed interface ListDetailEvent {
     data object ItemAdded : ListDetailEvent
+    data class ItemToggleFailed(val message: String) : ListDetailEvent
 }
 
 @HiltViewModel
@@ -30,7 +32,8 @@ class ListDetailViewModel @Inject constructor(
     private val getListUseCase: GetListUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val computeEstimatedTotal: ComputeEstimatedTotalUseCase,
-    private val addItemUseCase: AddItemUseCase
+    private val addItemUseCase: AddItemUseCase,
+    private val toggleItemCheckedUseCase: ToggleItemCheckedUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ListDetailUiState())
@@ -62,7 +65,8 @@ class ListDetailViewModel @Inject constructor(
                         itemGroups = groupItems(list.items, categories),
                         estimatedTotal = computeEstimatedTotal(list.items),
                         isAddingItem = _uiState.value.isAddingItem,
-                        addItemError = _uiState.value.addItemError
+                        addItemError = _uiState.value.addItemError,
+                        updatingItemIds = _uiState.value.updatingItemIds
                     )
                 }
             }
@@ -129,6 +133,28 @@ class ListDetailViewModel @Inject constructor(
                     addItemError = "Couldn't add this item. Please try again."
                 )
             }
+        }
+    }
+
+    fun toggleItem(item: GroceryItem) {
+        if (item.id in _uiState.value.updatingItemIds) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                updatingItemIds = _uiState.value.updatingItemIds + item.id
+            )
+            runCatching {
+                toggleItemCheckedUseCase(item.id, !item.isChecked)
+            }.onFailure {
+                eventChannel.send(
+                    ListDetailEvent.ItemToggleFailed(
+                        "Couldn't update ${item.name}. Please try again."
+                    )
+                )
+            }
+            _uiState.value = _uiState.value.copy(
+                updatingItemIds = _uiState.value.updatingItemIds - item.id
+            )
         }
     }
 
