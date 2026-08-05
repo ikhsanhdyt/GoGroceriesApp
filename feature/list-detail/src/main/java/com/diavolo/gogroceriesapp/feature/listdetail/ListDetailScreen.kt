@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -84,6 +85,7 @@ fun ListDetailRoute(
     listId: Long,
     onBackClick: () -> Unit,
     onShoppingStarted: (Long) -> Unit,
+    onTripSummaryClick: (Long) -> Unit,
     viewModel: ListDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -122,6 +124,7 @@ fun ListDetailRoute(
         },
         onDeleteItem = { item -> deletingItem = item },
         onStartShoppingClick = viewModel::startShopping,
+        onTripSummaryClick = { onTripSummaryClick(listId) },
         onAddItemClick = {
             viewModel.clearAddItemError()
             showAddItemSheet = true
@@ -180,6 +183,7 @@ fun ListDetailScreen(
     onEditItem: (GroceryItem) -> Unit,
     onDeleteItem: (GroceryItem) -> Unit,
     onStartShoppingClick: () -> Unit,
+    onTripSummaryClick: () -> Unit,
     onAddItemClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -210,7 +214,11 @@ fun ListDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            if (uiState.list?.items?.isNotEmpty() == true) {
+            if (
+                uiState.list?.items?.isNotEmpty() == true &&
+                uiState.list.status != ListStatus.Completed &&
+                uiState.list.status != ListStatus.Archived
+            ) {
                 ExtendedFloatingActionButton(
                     onClick = onAddItemClick,
                     icon = {
@@ -244,7 +252,8 @@ fun ListDetailScreen(
                 onToggleItem = onToggleItem,
                 onEditItem = onEditItem,
                 onDeleteItem = onDeleteItem,
-                onStartShoppingClick = onStartShoppingClick
+                onStartShoppingClick = onStartShoppingClick,
+                onTripSummaryClick = onTripSummaryClick
             )
         }
     }
@@ -306,9 +315,12 @@ private fun DetailContent(
     onToggleItem: (GroceryItem) -> Unit,
     onEditItem: (GroceryItem) -> Unit,
     onDeleteItem: (GroceryItem) -> Unit,
-    onStartShoppingClick: () -> Unit
+    onStartShoppingClick: () -> Unit,
+    onTripSummaryClick: () -> Unit
 ) {
     val list = requireNotNull(uiState.list)
+    val isReadOnly = list.status == ListStatus.Completed ||
+        list.status == ListStatus.Archived
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -329,7 +341,10 @@ private fun DetailContent(
 
         if (uiState.itemGroups.isEmpty()) {
             item(key = "empty") {
-                EmptyItemsCard(onAddItemClick)
+                EmptyItemsCard(
+                    canAddItems = !isReadOnly,
+                    onAddItemClick = onAddItemClick
+                )
             }
         } else {
             uiState.itemGroups.forEach { group ->
@@ -357,6 +372,7 @@ private fun DetailContent(
                     GroceryItemCard(
                         item = item,
                         isUpdating = item.id in uiState.updatingItemIds,
+                        isReadOnly = isReadOnly,
                         onToggleClick = { onToggleItem(item) },
                         onEditClick = { onEditItem(item) },
                         onDeleteClick = { onDeleteItem(item) }
@@ -387,6 +403,22 @@ private fun DetailContent(
                             else -> "Start shopping"
                         }
                     )
+                }
+            }
+        }
+
+        if (list.status == ListStatus.Completed) {
+            item(key = "trip-summary-action") {
+                Button(
+                    onClick = onTripSummaryClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Outlined.ReceiptLong, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("View trip summary")
                 }
             }
         }
@@ -478,7 +510,10 @@ private fun StatusBadge(status: ListStatus) {
 }
 
 @Composable
-private fun EmptyItemsCard(onAddItemClick: () -> Unit) {
+private fun EmptyItemsCard(
+    canAddItems: Boolean,
+    onAddItemClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -511,11 +546,13 @@ private fun EmptyItemsCard(onAddItemClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(20.dp))
-            Button(onClick = onAddItemClick) {
-                Icon(Icons.Outlined.Add, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Add first item")
+            if (canAddItems) {
+                Spacer(Modifier.height(20.dp))
+                Button(onClick = onAddItemClick) {
+                    Icon(Icons.Outlined.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Add first item")
+                }
             }
         }
     }
@@ -525,6 +562,7 @@ private fun EmptyItemsCard(onAddItemClick: () -> Unit) {
 private fun GroceryItemCard(
     item: GroceryItem,
     isUpdating: Boolean,
+    isReadOnly: Boolean,
     onToggleClick: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
@@ -534,7 +572,7 @@ private fun GroceryItemCard(
     Card(
         onClick = onToggleClick,
         modifier = Modifier.fillMaxWidth(),
-        enabled = !isUpdating,
+        enabled = !isUpdating && !isReadOnly,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -553,7 +591,8 @@ private fun GroceryItemCard(
             } else {
                 Checkbox(
                     checked = item.isChecked,
-                    onCheckedChange = { onToggleClick() }
+                    onCheckedChange = { onToggleClick() },
+                    enabled = !isReadOnly
                 )
             }
             Spacer(Modifier.width(14.dp))
@@ -587,40 +626,42 @@ private fun GroceryItemCard(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Box {
-                IconButton(
-                    onClick = { showActions = true },
-                    enabled = !isUpdating
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.MoreVert,
-                        contentDescription = "Actions for ${item.name}"
-                    )
-                }
-                DropdownMenu(
-                    expanded = showActions,
-                    onDismissRequest = { showActions = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.Edit, contentDescription = null)
-                        },
-                        onClick = {
-                            showActions = false
-                            onEditClick()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete") },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.Delete, contentDescription = null)
-                        },
-                        onClick = {
-                            showActions = false
-                            onDeleteClick()
-                        }
-                    )
+            if (!isReadOnly) {
+                Box {
+                    IconButton(
+                        onClick = { showActions = true },
+                        enabled = !isUpdating
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.MoreVert,
+                            contentDescription = "Actions for ${item.name}"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showActions,
+                        onDismissRequest = { showActions = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Edit, contentDescription = null)
+                            },
+                            onClick = {
+                                showActions = false
+                                onEditClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Delete, contentDescription = null)
+                            },
+                            onClick = {
+                                showActions = false
+                                onDeleteClick()
+                            }
+                        )
+                    }
                 }
             }
         }
