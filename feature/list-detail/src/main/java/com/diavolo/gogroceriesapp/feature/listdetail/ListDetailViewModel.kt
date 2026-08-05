@@ -7,9 +7,11 @@ import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
 import com.diavolo.gogroceriesapp.domain.usecase.AddItemUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.ComputeEstimatedTotalUseCase
+import com.diavolo.gogroceriesapp.domain.usecase.DeleteItemUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetCategoriesUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetListUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.ToggleItemCheckedUseCase
+import com.diavolo.gogroceriesapp.domain.usecase.UpdateItemUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -24,7 +26,9 @@ import javax.inject.Inject
 
 sealed interface ListDetailEvent {
     data object ItemAdded : ListDetailEvent
-    data class ItemToggleFailed(val message: String) : ListDetailEvent
+    data object ItemUpdated : ListDetailEvent
+    data object ItemDeleted : ListDetailEvent
+    data class Message(val message: String) : ListDetailEvent
 }
 
 @HiltViewModel
@@ -33,7 +37,9 @@ class ListDetailViewModel @Inject constructor(
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val computeEstimatedTotal: ComputeEstimatedTotalUseCase,
     private val addItemUseCase: AddItemUseCase,
-    private val toggleItemCheckedUseCase: ToggleItemCheckedUseCase
+    private val toggleItemCheckedUseCase: ToggleItemCheckedUseCase,
+    private val updateItemUseCase: UpdateItemUseCase,
+    private val deleteItemUseCase: DeleteItemUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ListDetailUiState())
@@ -66,6 +72,7 @@ class ListDetailViewModel @Inject constructor(
                         estimatedTotal = computeEstimatedTotal(list.items),
                         isAddingItem = _uiState.value.isAddingItem,
                         addItemError = _uiState.value.addItemError,
+                        editItemError = _uiState.value.editItemError,
                         updatingItemIds = _uiState.value.updatingItemIds
                     )
                 }
@@ -91,6 +98,10 @@ class ListDetailViewModel @Inject constructor(
 
     fun clearAddItemError() {
         _uiState.value = _uiState.value.copy(addItemError = null)
+    }
+
+    fun clearEditItemError() {
+        _uiState.value = _uiState.value.copy(editItemError = null)
     }
 
     fun addItem(
@@ -147,8 +158,74 @@ class ListDetailViewModel @Inject constructor(
                 toggleItemCheckedUseCase(item.id, !item.isChecked)
             }.onFailure {
                 eventChannel.send(
-                    ListDetailEvent.ItemToggleFailed(
+                    ListDetailEvent.Message(
                         "Couldn't update ${item.name}. Please try again."
+                    )
+                )
+            }
+            _uiState.value = _uiState.value.copy(
+                updatingItemIds = _uiState.value.updatingItemIds - item.id
+            )
+        }
+    }
+
+    fun updateItem(
+        item: GroceryItem,
+        name: String,
+        quantity: Double,
+        unit: UnitOfMeasure,
+        categoryId: Long?,
+        estimatedPriceRupiah: Long?
+    ) {
+        if (
+            name.isBlank() ||
+            quantity <= 0 ||
+            item.id in _uiState.value.updatingItemIds
+        ) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                editItemError = null,
+                updatingItemIds = _uiState.value.updatingItemIds + item.id
+            )
+            runCatching {
+                updateItemUseCase(
+                    item.copy(
+                        name = name.trim(),
+                        quantity = quantity,
+                        unit = unit,
+                        categoryId = categoryId,
+                        estimatedPriceRupiah = estimatedPriceRupiah
+                    )
+                )
+            }.onSuccess {
+                eventChannel.send(ListDetailEvent.ItemUpdated)
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    editItemError = "Couldn't save your changes. Please try again."
+                )
+            }
+            _uiState.value = _uiState.value.copy(
+                updatingItemIds = _uiState.value.updatingItemIds - item.id
+            )
+        }
+    }
+
+    fun deleteItem(item: GroceryItem) {
+        if (item.id in _uiState.value.updatingItemIds) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                updatingItemIds = _uiState.value.updatingItemIds + item.id
+            )
+            runCatching {
+                deleteItemUseCase(item.id)
+            }.onSuccess {
+                eventChannel.send(ListDetailEvent.ItemDeleted)
+            }.onFailure {
+                eventChannel.send(
+                    ListDetailEvent.Message(
+                        "Couldn't delete ${item.name}. Please try again."
                     )
                 )
             }

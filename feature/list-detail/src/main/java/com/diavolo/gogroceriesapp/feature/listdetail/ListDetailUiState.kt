@@ -13,6 +13,7 @@ data class ListDetailUiState(
     val estimatedTotal: Money = Money.zero(),
     val isAddingItem: Boolean = false,
     val addItemError: String? = null,
+    val editItemError: String? = null,
     val updatingItemIds: Set<Long> = emptySet(),
     val isNotFound: Boolean = false,
     val errorMessage: String? = null

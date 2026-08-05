@@ -21,6 +21,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -28,6 +32,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -81,6 +86,8 @@ fun ListDetailRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAddItemSheet by remember { mutableStateOf(false) }
+    var editingItem by remember { mutableStateOf<GroceryItem?>(null) }
+    var deletingItem by remember { mutableStateOf<GroceryItem?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(listId) {
@@ -91,7 +98,9 @@ fun ListDetailRoute(
         viewModel.events.collect { event ->
             when (event) {
                 ListDetailEvent.ItemAdded -> showAddItemSheet = false
-                is ListDetailEvent.ItemToggleFailed -> {
+                ListDetailEvent.ItemUpdated -> editingItem = null
+                ListDetailEvent.ItemDeleted -> deletingItem = null
+                is ListDetailEvent.Message -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
             }
@@ -104,6 +113,11 @@ fun ListDetailRoute(
         onRetryClick = viewModel::retry,
         snackbarHostState = snackbarHostState,
         onToggleItem = viewModel::toggleItem,
+        onEditItem = { item ->
+            viewModel.clearEditItemError()
+            editingItem = item
+        },
+        onDeleteItem = { item -> deletingItem = item },
         onAddItemClick = {
             viewModel.clearAddItemError()
             showAddItemSheet = true
@@ -111,12 +125,42 @@ fun ListDetailRoute(
     )
 
     if (showAddItemSheet) {
-        AddItemSheet(
+        ItemFormSheet(
+            item = null,
             categories = uiState.categories,
-            isAdding = uiState.isAddingItem,
+            isSaving = uiState.isAddingItem,
             errorMessage = uiState.addItemError,
             onDismiss = { showAddItemSheet = false },
-            onAddItem = viewModel::addItem
+            onSave = viewModel::addItem
+        )
+    }
+
+    editingItem?.let { item ->
+        ItemFormSheet(
+            item = item,
+            categories = uiState.categories,
+            isSaving = item.id in uiState.updatingItemIds,
+            errorMessage = uiState.editItemError,
+            onDismiss = { editingItem = null },
+            onSave = { name, quantity, unit, categoryId, estimatedPrice ->
+                viewModel.updateItem(
+                    item = item,
+                    name = name,
+                    quantity = quantity,
+                    unit = unit,
+                    categoryId = categoryId,
+                    estimatedPriceRupiah = estimatedPrice
+                )
+            }
+        )
+    }
+
+    deletingItem?.let { item ->
+        DeleteItemDialog(
+            item = item,
+            isDeleting = item.id in uiState.updatingItemIds,
+            onDismiss = { deletingItem = null },
+            onConfirm = { viewModel.deleteItem(item) }
         )
     }
 }
@@ -129,6 +173,8 @@ fun ListDetailScreen(
     onRetryClick: () -> Unit,
     snackbarHostState: SnackbarHostState,
     onToggleItem: (GroceryItem) -> Unit,
+    onEditItem: (GroceryItem) -> Unit,
+    onDeleteItem: (GroceryItem) -> Unit,
     onAddItemClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -190,7 +236,9 @@ fun ListDetailScreen(
                 uiState = uiState,
                 contentPadding = contentPadding,
                 onAddItemClick = onAddItemClick,
-                onToggleItem = onToggleItem
+                onToggleItem = onToggleItem,
+                onEditItem = onEditItem,
+                onDeleteItem = onDeleteItem
             )
         }
     }
@@ -249,7 +297,9 @@ private fun DetailContent(
     uiState: ListDetailUiState,
     contentPadding: PaddingValues,
     onAddItemClick: () -> Unit,
-    onToggleItem: (GroceryItem) -> Unit
+    onToggleItem: (GroceryItem) -> Unit,
+    onEditItem: (GroceryItem) -> Unit,
+    onDeleteItem: (GroceryItem) -> Unit
 ) {
     val list = requireNotNull(uiState.list)
 
@@ -300,7 +350,9 @@ private fun DetailContent(
                     GroceryItemCard(
                         item = item,
                         isUpdating = item.id in uiState.updatingItemIds,
-                        onToggleClick = { onToggleItem(item) }
+                        onToggleClick = { onToggleItem(item) },
+                        onEditClick = { onEditItem(item) },
+                        onDeleteClick = { onDeleteItem(item) }
                     )
                 }
             }
@@ -440,8 +492,12 @@ private fun EmptyItemsCard(onAddItemClick: () -> Unit) {
 private fun GroceryItemCard(
     item: GroceryItem,
     isUpdating: Boolean,
-    onToggleClick: () -> Unit
+    onToggleClick: () -> Unit,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
+    var showActions by remember { mutableStateOf(false) }
+
     Card(
         onClick = onToggleClick,
         modifier = Modifier.fillMaxWidth(),
@@ -498,18 +554,55 @@ private fun GroceryItemCard(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Box {
+                IconButton(
+                    onClick = { showActions = true },
+                    enabled = !isUpdating
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.MoreVert,
+                        contentDescription = "Actions for ${item.name}"
+                    )
+                }
+                DropdownMenu(
+                    expanded = showActions,
+                    onDismissRequest = { showActions = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.Edit, contentDescription = null)
+                        },
+                        onClick = {
+                            showActions = false
+                            onEditClick()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.Delete, contentDescription = null)
+                        },
+                        onClick = {
+                            showActions = false
+                            onDeleteClick()
+                        }
+                    )
+                }
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddItemSheet(
+private fun ItemFormSheet(
+    item: GroceryItem?,
     categories: List<Category>,
-    isAdding: Boolean,
+    isSaving: Boolean,
     errorMessage: String?,
     onDismiss: () -> Unit,
-    onAddItem: (
+    onSave: (
         name: String,
         quantity: Double,
         unit: UnitOfMeasure,
@@ -517,11 +610,19 @@ private fun AddItemSheet(
         estimatedPriceRupiah: Long?
     ) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var quantity by remember { mutableStateOf("1") }
-    var estimatedPrice by remember { mutableStateOf("") }
-    var selectedUnit by remember { mutableStateOf(UnitOfMeasure.PIECE) }
-    var selectedCategory by remember { mutableStateOf<Category?>(null) }
+    val itemKey = item?.id ?: 0L
+    val isEditing = item != null
+    var name by remember(itemKey) { mutableStateOf(item?.name.orEmpty()) }
+    var quantity by remember(itemKey) {
+        mutableStateOf(item?.quantity?.let(::formatQuantity) ?: "1")
+    }
+    var estimatedPrice by remember(itemKey) {
+        mutableStateOf(item?.estimatedPriceRupiah?.toString().orEmpty())
+    }
+    var selectedUnit by remember(itemKey) {
+        mutableStateOf(item?.unit ?: UnitOfMeasure.PIECE)
+    }
+    var selectedCategoryId by remember(itemKey) { mutableStateOf(item?.categoryId) }
     var unitMenuExpanded by remember { mutableStateOf(false) }
     var categoryMenuExpanded by remember { mutableStateOf(false) }
     var submitted by remember { mutableStateOf(false) }
@@ -541,13 +642,17 @@ private fun AddItemSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = "Add a grocery item",
+                text = if (isEditing) "Edit grocery item" else "Add a grocery item",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Add the essentials now. You can refine the item later.",
+                text = if (isEditing) {
+                    "Update the item details for this shopping list."
+                } else {
+                    "Add the essentials now. You can refine the item later."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -634,7 +739,10 @@ private fun AddItemSheet(
                     onExpandedChange = { categoryMenuExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = selectedCategory?.name ?: "Other",
+                        value = categories
+                            .firstOrNull { it.id == selectedCategoryId }
+                            ?.name
+                            ?: "Other",
                         onValueChange = {},
                         modifier = Modifier
                             .fillMaxWidth()
@@ -653,7 +761,7 @@ private fun AddItemSheet(
                         DropdownMenuItem(
                             text = { Text("Other") },
                             onClick = {
-                                selectedCategory = null
+                                selectedCategoryId = null
                                 categoryMenuExpanded = false
                             }
                         )
@@ -661,7 +769,7 @@ private fun AddItemSheet(
                             DropdownMenuItem(
                                 text = { Text(category.name) },
                                 onClick = {
-                                    selectedCategory = category
+                                    selectedCategoryId = category.id
                                     categoryMenuExpanded = false
                                 }
                             )
@@ -707,16 +815,16 @@ private fun AddItemSheet(
                 onClick = {
                     submitted = true
                     if (name.isNotBlank() && !quantityIsInvalid && !priceIsInvalid) {
-                        onAddItem(
+                        onSave(
                             name,
                             requireNotNull(parsedQuantity),
                             selectedUnit,
-                            selectedCategory?.id,
+                            selectedCategoryId,
                             parsedPrice
                         )
                     }
                 },
-                enabled = !isAdding,
+                enabled = !isSaving,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -724,17 +832,68 @@ private fun AddItemSheet(
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Text(if (isAdding) "Adding item..." else "Add item")
+                Text(
+                    when {
+                        isSaving && isEditing -> "Saving changes..."
+                        isSaving -> "Adding item..."
+                        isEditing -> "Save changes"
+                        else -> "Add item"
+                    }
+                )
             }
             TextButton(
                 onClick = onDismiss,
-                enabled = !isAdding,
+                enabled = !isSaving,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
                 Text("Cancel")
             }
         }
     }
+}
+
+@Composable
+private fun DeleteItemDialog(
+    item: GroceryItem,
+    isDeleting: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = {
+            if (!isDeleting) onDismiss()
+        },
+        icon = {
+            Icon(
+                imageVector = Icons.Outlined.Delete,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+        },
+        title = { Text("Delete ${item.name}?") },
+        text = {
+            Text("This item will be removed from the shopping list.")
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = !isDeleting,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text(if (isDeleting) "Deleting..." else "Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isDeleting
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable

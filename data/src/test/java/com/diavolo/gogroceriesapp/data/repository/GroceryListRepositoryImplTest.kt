@@ -5,6 +5,7 @@ import com.diavolo.gogroceriesapp.data.local.dao.GroceryListDao
 import com.diavolo.gogroceriesapp.data.local.entity.GroceryItemEntity
 import com.diavolo.gogroceriesapp.data.local.entity.GroceryListEntity
 import com.diavolo.gogroceriesapp.data.local.entity.relations.ListWithItems
+import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -58,6 +59,27 @@ class GroceryListRepositoryImplTest {
         coVerify(exactly = 1) { itemDao.setChecked(id = 42, checked = true) }
     }
 
+    @Test
+    fun `updateItem persists the mapped item`() = runBlocking {
+        val item = domainItem(id = 42, name = "Updated bananas")
+        coEvery { itemDao.update(any()) } returns Unit
+
+        repository.updateItem(item)
+
+        coVerify(exactly = 1) {
+            itemDao.update(match { it.id == 42L && it.name == "Updated bananas" })
+        }
+    }
+
+    @Test
+    fun `deleteItem removes the requested item`() = runBlocking {
+        coEvery { itemDao.delete(id = 42) } returns Unit
+
+        repository.deleteItem(itemId = 42)
+
+        coVerify(exactly = 1) { itemDao.delete(id = 42) }
+    }
+
     private fun groceryItem(
         id: Long,
         name: String,
@@ -74,5 +96,22 @@ class GroceryListRepositoryImplTest {
         isChecked = false,
         notes = null,
         position = position
+    )
+
+    private fun domainItem(
+        id: Long,
+        name: String
+    ) = GroceryItem(
+        id = id,
+        listId = 1,
+        categoryId = null,
+        name = name,
+        quantity = 1.0,
+        unit = UnitOfMeasure.PIECE,
+        estimatedPriceRupiah = 10_000,
+        actualPriceRupiah = null,
+        isChecked = false,
+        notes = null,
+        position = 0
     )
 }
