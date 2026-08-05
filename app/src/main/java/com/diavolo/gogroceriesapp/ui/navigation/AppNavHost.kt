@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.diavolo.gogroceriesapp.feature.activeshopping.ActiveShoppingRoute
+import com.diavolo.gogroceriesapp.feature.analytics.AnalyticsRoute
 import com.diavolo.gogroceriesapp.feature.home.HomeRoute
 import com.diavolo.gogroceriesapp.feature.listdetail.ListDetailRoute
 import com.diavolo.gogroceriesapp.feature.tripsummary.TripSummaryRoute
@@ -17,6 +18,7 @@ private const val LIST_ID_ARGUMENT = "listId"
 private const val LIST_DETAIL_ROUTE = "list-detail/{$LIST_ID_ARGUMENT}"
 private const val ACTIVE_SHOPPING_ROUTE = "active-shopping/{$LIST_ID_ARGUMENT}"
 private const val TRIP_SUMMARY_ROUTE = "trip-summary/{$LIST_ID_ARGUMENT}"
+private const val ANALYTICS_ROUTE = "analytics"
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
@@ -31,6 +33,16 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             HomeRoute(
                 onListClick = { listId ->
                     navController.navigate("list-detail/$listId")
+                },
+                onAnalyticsClick = { navController.navigate(ANALYTICS_ROUTE) }
+            )
+        }
+
+        composable(ANALYTICS_ROUTE) {
+            AnalyticsRoute(
+                onBackClick = navController::popBackStack,
+                onTripClick = { listId ->
+                    navController.navigate("trip-summary/$listId")
                 }
             )
         }

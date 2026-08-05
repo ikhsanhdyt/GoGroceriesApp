@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons.Outlined
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -32,6 +33,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
@@ -65,6 +67,7 @@ import com.diavolo.gogroceriesapp.domain.model.ListStatus
 @Composable
 fun HomeRoute(
     onListClick: (Long) -> Unit,
+    onAnalyticsClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -84,7 +87,8 @@ fun HomeRoute(
         uiState = uiState,
         onCreateListClick = openCreateSheet,
         onRetryClick = viewModel::retryLoading,
-        onListClick = onListClick
+        onListClick = onListClick,
+        onAnalyticsClick = onAnalyticsClick
     )
 
     if (showCreateSheet) {
@@ -104,6 +108,7 @@ fun HomeScreen(
     onCreateListClick: () -> Unit,
     onRetryClick: () -> Unit,
     onListClick: (Long) -> Unit,
+    onAnalyticsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -121,6 +126,14 @@ fun HomeScreen(
                             text = "Plan smarter, shop easier",
                             style = MaterialTheme.typography.labelSmall,
                             color = colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onAnalyticsClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.BarChart,
+                            contentDescription = "Open budget analytics"
                         )
                     }
                 },

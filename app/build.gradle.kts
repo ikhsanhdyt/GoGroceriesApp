@@ -55,6 +55,7 @@ dependencies {
     implementation(project(":feature:list-detail"))
     implementation(project(":feature:active-shopping"))
     implementation(project(":feature:trip-summary"))
+    implementation(project(":feature:analytics"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
