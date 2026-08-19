@@ -16,12 +16,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ShoppingCart
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -32,7 +30,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,11 +47,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -344,7 +341,9 @@ private fun ShoppingItemCard(
     Card(
         onClick = onToggleClick,
         enabled = !isUpdating,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("shopping-item-${item.id}"),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (item.isChecked) {
@@ -403,7 +402,8 @@ private fun ShoppingItemCard(
             }
             TextButton(
                 onClick = onPriceClick,
-                enabled = !isUpdating
+                enabled = !isUpdating,
+                modifier = Modifier.testTag("set-price-${item.id}")
             ) {
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
@@ -476,7 +476,9 @@ private fun ShoppingBottomBar(
             Button(
                 onClick = onFinishClick,
                 enabled = !isFinishing,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("finish-shopping"),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Icon(Icons.Outlined.CheckCircle, contentDescription = null)
@@ -487,150 +489,5 @@ private fun ShoppingBottomBar(
     }
 }
 
-@Composable
-private fun ActualPriceDialog(
-    item: GroceryItem,
-    isSaving: Boolean,
-    errorMessage: String?,
-    onDismiss: () -> Unit,
-    onSave: (Long?) -> Unit
-) {
-    var price by remember(item.id, item.actualPriceRupiah) {
-        mutableStateOf(item.actualPriceRupiah?.toString().orEmpty())
-    }
-    var submitted by remember(item.id) { mutableStateOf(false) }
-    val parsedPrice = price.toLongOrNull()
-    val priceIsInvalid = price.isBlank() || parsedPrice == null
-
-    AlertDialog(
-        onDismissRequest = {
-            if (!isSaving) onDismiss()
-        },
-        title = { Text("Actual price for ${item.name}") },
-        text = {
-            Column {
-                Text(
-                    text = "Enter the price per ${item.unit.name.lowercase()}. Quantity: ${formatQuantity(item.quantity)}.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = { price = it.filter(Char::isDigit) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Actual unit price") },
-                    prefix = { Text("Rp ") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = submitted && priceIsInvalid,
-                    supportingText = {
-                        when {
-                            submitted && priceIsInvalid -> Text("Enter a valid whole-rupiah amount.")
-                            parsedPrice != null -> Text(
-                                "Item subtotal ${Money.fromRupiah(parsedPrice * item.quantity)}"
-                            )
-                            else -> Text("Used for the completed-trip total.")
-                        }
-                    }
-                )
-                errorMessage?.let { message ->
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                if (item.actualPriceRupiah != null) {
-                    TextButton(
-                        onClick = { onSave(null) },
-                        enabled = !isSaving,
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("Clear actual price")
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    submitted = true
-                    if (!priceIsInvalid) onSave(parsedPrice)
-                },
-                enabled = !isSaving
-            ) {
-                Text(if (isSaving) "Saving..." else "Save price")
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                enabled = !isSaving
-            ) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-@Composable
-private fun FinishShoppingDialog(
-    list: GroceryList?,
-    isFinishing: Boolean,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    val remaining = list?.items?.count { !it.isChecked } ?: 0
-    val missingPrices = list?.items?.count {
-        it.isChecked && it.actualPriceRupiah == null
-    } ?: 0
-    val finishMessage = buildList {
-        if (remaining == 0) {
-            add("All items are checked.")
-        } else {
-            add(
-                "$remaining ${if (remaining == 1) "item is" else "items are"} still unchecked."
-            )
-        }
-        if (missingPrices > 0) {
-            add(
-                "$missingPrices purchased ${if (missingPrices == 1) "item has" else "items have"} no actual price."
-            )
-        }
-        add("This trip will be marked completed.")
-    }.joinToString("\n\n")
-
-    AlertDialog(
-        onDismissRequest = {
-            if (!isFinishing) onDismiss()
-        },
-        icon = {
-            Icon(Icons.Outlined.CheckCircle, contentDescription = null)
-        },
-        title = { Text("Finish shopping?") },
-        text = {
-            Text(finishMessage)
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                enabled = !isFinishing
-            ) {
-                Text(if (isFinishing) "Finishing..." else "Finish")
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                enabled = !isFinishing
-            ) {
-                Text("Keep shopping")
-            }
-        }
-    )
-}
-
-private fun formatQuantity(quantity: Double): String =
+internal fun formatQuantity(quantity: Double): String =
     if (quantity % 1.0 == 0.0) quantity.toLong().toString() else quantity.toString()
