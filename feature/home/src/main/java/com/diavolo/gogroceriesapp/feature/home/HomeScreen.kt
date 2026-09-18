@@ -6,14 +6,22 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.Icons.Outlined
 import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
@@ -54,6 +62,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -132,7 +142,7 @@ fun HomeScreen(
                 actions = {
                     IconButton(onClick = onAnalyticsClick) {
                         Icon(
-                            imageVector = Icons.Outlined.BarChart,
+                            imageVector = Outlined.BarChart,
                             contentDescription = "Open budget analytics"
                         )
                     }
@@ -417,7 +427,7 @@ private fun ListStatusChip(status: ListStatus) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateListSheet(
     onDismiss: () -> Unit,
@@ -428,14 +438,25 @@ private fun CreateListSheet(
     var name by remember { mutableStateOf("") }
     var budget by remember { mutableStateOf("") }
     var showNameError by remember { mutableStateOf(false) }
+    var isBudgetFocused by remember { mutableStateOf(false) }
+    val budgetBringIntoViewRequester = remember { BringIntoViewRequester() }
+    val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
     val parsedBudget = budget.trim().toLongOrNull()
     val budgetIsInvalid = budget.isNotBlank() && (parsedBudget == null || parsedBudget < 0)
+
+    LaunchedEffect(isBudgetFocused, imeBottom) {
+        if (isBudgetFocused && imeBottom > 0) {
+            budgetBringIntoViewRequester.bringIntoView()
+        }
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
                 .padding(bottom = 32.dp)
         ) {
             Text(
@@ -475,7 +496,10 @@ private fun CreateListSheet(
             OutlinedTextField(
                 value = budget,
                 onValueChange = { budget = it.filter(Char::isDigit) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bringIntoViewRequester(budgetBringIntoViewRequester)
+                    .onFocusChanged { isBudgetFocused = it.isFocused },
                 label = { Text("Budget (optional)") },
                 prefix = { Text("Rp ") },
                 placeholder = { Text("0") },
