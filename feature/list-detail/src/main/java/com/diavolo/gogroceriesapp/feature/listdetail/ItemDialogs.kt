@@ -1,14 +1,20 @@
 package com.diavolo.gogroceriesapp.feature.listdetail
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
@@ -22,8 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +37,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -104,20 +110,14 @@ internal fun ItemFormSheet(
             )
             Spacer(Modifier.height(24.dp))
 
-            OutlinedTextField(
+            BasicOutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Item name") },
-                placeholder = { Text("e.g. Organic bananas") },
-                singleLine = true,
+                label = "Item name",
+                placeholder = "e.g. Organic bananas",
                 isError = submitted && name.isBlank(),
-                supportingText = if (submitted && name.isBlank()) {
-                    { Text("Enter an item name.") }
-                } else {
-                    null
-                },
-                colors = addItemTextFieldColors()
+                supportingText = if (submitted && name.isBlank()) "Enter an item name." else null
             )
             Spacer(Modifier.height(12.dp))
 
@@ -125,22 +125,16 @@ internal fun ItemFormSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
+                BasicOutlinedTextField(
                     value = quantity,
                     onValueChange = { value ->
                         quantity = value.filter { it.isDigit() || it == '.' }
                     },
                     modifier = Modifier.weight(1f),
-                    label = { Text("Quantity") },
-                    singleLine = true,
+                    label = "Quantity",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = submitted && quantityIsInvalid,
-                    supportingText = if (submitted && quantityIsInvalid) {
-                        { Text("Enter more than 0.") }
-                    } else {
-                        null
-                    },
-                    colors = addItemTextFieldColors()
+                    supportingText = if (submitted && quantityIsInvalid) "Enter more than 0." else null
                 )
 
                 ExposedDropdownMenuBox(
@@ -148,18 +142,17 @@ internal fun ItemFormSheet(
                     onExpandedChange = { unitMenuExpanded = it },
                     modifier = Modifier.weight(1f)
                 ) {
-                    OutlinedTextField(
+                    BasicOutlinedTextField(
                         value = selectedUnit.displayName(),
                         onValueChange = {},
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         readOnly = true,
-                        label = { Text("Unit") },
+                        label = "Unit",
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(unitMenuExpanded)
-                        },
-                        colors = addItemTextFieldColors()
+                        }
                     )
                     ExposedDropdownMenu(
                         expanded = unitMenuExpanded,
@@ -184,7 +177,7 @@ internal fun ItemFormSheet(
                     expanded = categoryMenuExpanded,
                     onExpandedChange = { categoryMenuExpanded = it }
                 ) {
-                    OutlinedTextField(
+                    BasicOutlinedTextField(
                         value = categories
                             .firstOrNull { it.id == selectedCategoryId }
                             ?.name
@@ -194,11 +187,10 @@ internal fun ItemFormSheet(
                             .fillMaxWidth()
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         readOnly = true,
-                        label = { Text("Category") },
+                        label = "Category",
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(categoryMenuExpanded)
-                        },
-                        colors = addItemTextFieldColors()
+                        }
                     )
                     ExposedDropdownMenu(
                         expanded = categoryMenuExpanded,
@@ -225,26 +217,20 @@ internal fun ItemFormSheet(
                 Spacer(Modifier.height(12.dp))
             }
 
-            OutlinedTextField(
+            BasicOutlinedTextField(
                 value = estimatedPrice,
                 onValueChange = { estimatedPrice = it.filter(Char::isDigit) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Estimated price (optional)") },
-                prefix = { Text("Rp ") },
-                placeholder = { Text("0") },
-                singleLine = true,
+                label = "Estimated price (optional)",
+                prefix = "Rp ",
+                placeholder = "0",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 isError = submitted && priceIsInvalid,
-                supportingText = {
-                    Text(
-                        if (submitted && priceIsInvalid) {
-                            "Enter a valid whole-rupiah amount."
-                        } else {
-                            "Estimated price per unit."
-                        }
-                    )
-                },
-                colors = addItemTextFieldColors()
+                supportingText = if (submitted && priceIsInvalid) {
+                    "Enter a valid whole-rupiah amount."
+                } else {
+                    "Estimated price per unit."
+                }
             )
 
             errorMessage?.let { message ->
@@ -299,6 +285,87 @@ internal fun ItemFormSheet(
 }
 
 @Composable
+private fun BasicOutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    placeholder: String? = null,
+    prefix: String? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    readOnly: Boolean = false,
+    isError: Boolean = false,
+    supportingText: String? = null,
+    trailingIcon: @Composable (() -> Unit)? = null
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val borderColor = if (isError) colorScheme.error else colorScheme.primary
+
+    Column(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 56.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .border(2.dp, borderColor, RoundedCornerShape(4.dp))
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                prefix?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colorScheme.onSurface
+                    )
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.weight(1f),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = colorScheme.onSurface
+                    ),
+                    keyboardOptions = keyboardOptions,
+                    readOnly = readOnly,
+                    singleLine = true,
+                    cursorBrush = SolidColor(colorScheme.primary),
+                    decorationBox = { innerTextField ->
+                        if (value.isEmpty() && placeholder != null) {
+                            Text(
+                                text = placeholder,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = colorScheme.onSurfaceVariant
+                            )
+                        }
+                        innerTextField()
+                    }
+                )
+                trailingIcon?.invoke()
+            }
+            Text(
+                text = label,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset(x = (-4).dp, y = (-9).dp)
+                    .background(colorScheme.surface)
+                    .padding(horizontal = 4.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = borderColor
+            )
+        }
+        supportingText?.let { text ->
+            Text(
+                text = text,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isError) colorScheme.error else colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
 internal fun DeleteItemDialog(
     item: GroceryItem,
     isDeleting: Boolean,
@@ -341,12 +408,6 @@ internal fun DeleteItemDialog(
         }
     )
 }
-
-@Composable
-private fun addItemTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MaterialTheme.colorScheme.primary,
-    focusedLabelColor = MaterialTheme.colorScheme.primary
-)
 
 private fun UnitOfMeasure.displayName(): String = name
     .lowercase()
