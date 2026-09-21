@@ -1,5 +1,6 @@
 package com.diavolo.gogroceriesapp.feature.home
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,11 +17,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.Icons.Outlined
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.BottomSheetDefaults.ContainerColor
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -46,8 +48,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -64,12 +64,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.diavolo.gogroceriesapp.core.ui.AppTextField
+import com.diavolo.gogroceriesapp.core.ui.AppTextFieldInput
 import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
 import com.diavolo.gogroceriesapp.domain.model.ListStatus
@@ -440,6 +443,8 @@ private fun CreateListSheet(
     var showNameError by remember { mutableStateOf(false) }
     var isBudgetFocused by remember { mutableStateOf(false) }
     val budgetBringIntoViewRequester = remember { BringIntoViewRequester() }
+    val focusManager = LocalFocusManager.current
+    val sheetBackground = ContainerColor
     val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
     val parsedBudget = budget.trim().toLongOrNull()
     val budgetIsInvalid = budget.isNotBlank() && (parsedBudget == null || parsedBudget < 0)
@@ -471,47 +476,39 @@ private fun CreateListSheet(
                 color = colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(24.dp))
-            OutlinedTextField(
+            AppTextField(
                 value = name,
                 onValueChange = {
                     name = it
                     if (it.isNotBlank()) showNameError = false
                 },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("List name") },
-                placeholder = { Text("e.g. Weekly groceries") },
-                singleLine = true,
+                label = "List name",
+                placeholder = "e.g. Weekly groceries",
+                labelBackground = sheetBackground,
                 isError = showNameError,
-                supportingText = if (showNameError) {
-                    { Text("Enter a name for your list.") }
-                } else {
-                    null
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colorScheme.primary,
-                    focusedLabelColor = colorScheme.primary
-                )
+                supportingText = if (showNameError) "Enter a name for your list." else null
             )
             Spacer(Modifier.height(12.dp))
-            OutlinedTextField(
+            AppTextField(
+                input = AppTextFieldInput.Currency,
+                prefix = "Rp ",
+                placeholder = "0",
                 value = budget,
-                onValueChange = { budget = it.filter(Char::isDigit) },
+                onValueChange = { budget = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .bringIntoViewRequester(budgetBringIntoViewRequester)
                     .onFocusChanged { isBudgetFocused = it.isFocused },
-                label = { Text("Budget (optional)") },
-                prefix = { Text("Rp ") },
-                placeholder = { Text("0") },
-                singleLine = true,
+                label = "Budget (optional)",
+                labelBackground = sheetBackground,
                 isError = budgetIsInvalid,
-                supportingText = {
-                    Text(if (budgetIsInvalid) "Enter a valid budget." else "Set a limit for this shopping trip.")
+                supportingText = if (budgetIsInvalid) {
+                    "Enter a valid budget."
+                } else {
+                    "Set a limit for this shopping trip."
                 },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colorScheme.primary,
-                    focusedLabelColor = colorScheme.primary
-                )
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
             )
             Spacer(Modifier.height(24.dp))
             errorMessage?.let { message ->

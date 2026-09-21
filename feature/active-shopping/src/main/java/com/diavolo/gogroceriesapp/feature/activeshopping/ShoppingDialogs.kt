@@ -5,13 +5,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -21,8 +19,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.diavolo.gogroceriesapp.core.ui.AppTextField
+import com.diavolo.gogroceriesapp.core.ui.AppTextFieldInput
 import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
@@ -53,23 +52,20 @@ internal fun ActualPriceDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(16.dp))
-                OutlinedTextField(
+                AppTextField(
+                    input = AppTextFieldInput.Currency,
+                    prefix = "Rp ",
                     value = price,
-                    onValueChange = { price = it.filter(Char::isDigit) },
+                    onValueChange = { price = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Actual unit price") },
-                    prefix = { Text("Rp ") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    label = "Actual unit price",
                     isError = submitted && priceIsInvalid,
-                    supportingText = {
-                        when {
-                            submitted && priceIsInvalid -> Text("Enter a valid whole-rupiah amount.")
-                            parsedPrice != null -> Text(
-                                "Item subtotal ${Money.fromRupiah(parsedPrice * item.quantity)}"
-                            )
-                            else -> Text("Used for the completed-trip total.")
-                        }
+                    labelBackground = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    supportingText = when {
+                        submitted && priceIsInvalid -> "Enter a valid whole-rupiah amount."
+                        parsedPrice != null ->
+                            "Item subtotal ${Money.fromRupiah(parsedPrice * item.quantity)}"
+                        else -> "Used for the completed-trip total."
                     }
                 )
                 errorMessage?.let { message ->
