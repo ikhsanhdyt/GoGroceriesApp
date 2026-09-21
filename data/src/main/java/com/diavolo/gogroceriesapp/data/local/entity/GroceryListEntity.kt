@@ -10,5 +10,6 @@ data class GroceryListEntity(
     val status: String,
     val budgetRupiah: Long?,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val completedAt: Long? = null
 )

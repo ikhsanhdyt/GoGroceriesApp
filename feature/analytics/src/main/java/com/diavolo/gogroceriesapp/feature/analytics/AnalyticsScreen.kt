@@ -53,13 +53,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.diavolo.gogroceriesapp.common.toDisplayDate
 import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.BudgetAnalytics
 import com.diavolo.gogroceriesapp.domain.model.CategorySpending
 import com.diavolo.gogroceriesapp.domain.model.TripSpending
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
 @Composable
@@ -479,7 +477,7 @@ private fun SpendingTrendCard(trips: List<TripSpending>) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 trips.firstOrNull()?.let { first ->
                     Text(
-                        text = formatDate(first.completedAt),
+                        text = first.completedAt.toDisplayDate(),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -487,7 +485,7 @@ private fun SpendingTrendCard(trips: List<TripSpending>) {
                 Spacer(Modifier.weight(1f))
                 trips.lastOrNull()?.let { last ->
                     Text(
-                        text = formatDate(last.completedAt),
+                        text = last.completedAt.toDisplayDate(),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -528,7 +526,7 @@ private fun RecentTripCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = formatDate(trip.completedAt),
+                    text = trip.completedAt.toDisplayDate(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -610,8 +608,3 @@ private fun MessageContent(
 private fun rememberCategoryColor(colorHex: String): Color =
     runCatching { Color(parseColor(colorHex)) }
         .getOrDefault(MaterialTheme.colorScheme.primary)
-
-private fun formatDate(timestamp: Long): String = Instant
-    .ofEpochMilli(timestamp)
-    .atZone(ZoneId.systemDefault())
-    .format(DateTimeFormatter.ofPattern("dd MMM yyyy"))

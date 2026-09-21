@@ -1,5 +1,6 @@
 package com.diavolo.gogroceriesapp.data.repository
 
+import com.diavolo.gogroceriesapp.common.TimeProvider
 import com.diavolo.gogroceriesapp.data.local.dao.GroceryItemDao
 import com.diavolo.gogroceriesapp.data.local.dao.GroceryListDao
 import com.diavolo.gogroceriesapp.data.local.entity.GroceryListEntity
@@ -17,7 +18,8 @@ import javax.inject.Inject
 
 class GroceryListRepositoryImpl @Inject constructor(
     private val listDao: GroceryListDao,
-    private val itemDao: GroceryItemDao
+    private val itemDao: GroceryItemDao,
+    private val timeProvider: TimeProvider
 ) : GroceryListRepository {
 
     override fun observeLists(): Flow<List<GroceryList>> {
@@ -34,7 +36,7 @@ class GroceryListRepositoryImpl @Inject constructor(
 
     override suspend fun create(name: String, budgetRupiah: Long?): Long =
         withContext(Dispatchers.IO) {
-            val now = System.currentTimeMillis()
+            val now = timeProvider.nowMillis()
             val entity = GroceryListEntity(
                 name = name,
                 status = ListStatus.Draft.name,
@@ -46,15 +48,14 @@ class GroceryListRepositoryImpl @Inject constructor(
         }
 
     override suspend fun update(list: GroceryList) = withContext(Dispatchers.IO) {
-        val now = System.currentTimeMillis()
-        // Fetch or reconstruct basic entity with updated timestamp
         val entity = GroceryListEntity(
             id = list.id,
             name = list.name,
             status = list.status.name,
             budgetRupiah = list.budgetRupiah,
             createdAt = list.createdAt,
-            updatedAt = now
+            updatedAt = timeProvider.nowMillis(),
+            completedAt = list.completedAt
         )
         listDao.update(entity)
     }

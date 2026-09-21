@@ -1,5 +1,6 @@
 package com.diavolo.gogroceriesapp.domain.usecase
 
+import com.diavolo.gogroceriesapp.domain.FakeTimeProvider
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
 import com.diavolo.gogroceriesapp.domain.model.ListStatus
@@ -9,12 +10,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class ShoppingStatusUseCaseTest {
 
     private val repository = RecordingRepository()
+    private val timeProvider = FakeTimeProvider(now = 5_000L)
 
     @Test
     fun `start shopping changes a draft list to active`() = runBlocking {
@@ -25,9 +28,26 @@ class ShoppingStatusUseCaseTest {
 
     @Test
     fun `finish shopping changes an active list to completed`() = runBlocking {
-        FinishShoppingUseCase(repository)(shoppingList(ListStatus.Active))
+        FinishShoppingUseCase(repository, timeProvider)(shoppingList(ListStatus.Active))
 
         assertEquals(ListStatus.Completed, repository.updatedList?.status)
+    }
+
+    @Test
+    fun `finish shopping records the completion time`() = runBlocking {
+        FinishShoppingUseCase(repository, timeProvider)(shoppingList(ListStatus.Active))
+
+        assertEquals(5_000L, repository.updatedList?.completedAt)
+    }
+
+    @Test
+    fun `a list that is not active cannot be finished`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking {
+                FinishShoppingUseCase(repository, timeProvider)(shoppingList(ListStatus.Draft))
+            }
+        }
+        assertNull(repository.updatedList)
     }
 
     @Test

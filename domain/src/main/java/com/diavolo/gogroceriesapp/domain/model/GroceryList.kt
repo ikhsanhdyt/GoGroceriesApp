@@ -7,5 +7,6 @@ data class GroceryList(
     val budgetRupiah: Long?,
     val createdAt: Long,
     val updatedAt: Long,
-    val items: List<GroceryItem> = emptyList()
+    val items: List<GroceryItem> = emptyList(),
+    val completedAt: Long? = null
 )

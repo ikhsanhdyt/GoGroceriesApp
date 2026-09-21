@@ -1,27 +1,67 @@
 package com.diavolo.gogroceriesapp.data.repository
 
+import com.diavolo.gogroceriesapp.data.FakeTimeProvider
 import com.diavolo.gogroceriesapp.data.local.dao.GroceryItemDao
 import com.diavolo.gogroceriesapp.data.local.dao.GroceryListDao
 import com.diavolo.gogroceriesapp.data.local.entity.GroceryItemEntity
 import com.diavolo.gogroceriesapp.data.local.entity.GroceryListEntity
 import com.diavolo.gogroceriesapp.data.local.entity.relations.ListWithItems
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
+import com.diavolo.gogroceriesapp.domain.model.GroceryList
+import com.diavolo.gogroceriesapp.domain.model.ListStatus
 import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class GroceryListRepositoryImplTest {
 
     private val listDao = mockk<GroceryListDao>()
     private val itemDao = mockk<GroceryItemDao>()
-    private val repository = GroceryListRepositoryImpl(listDao, itemDao)
+    private val timeProvider = FakeTimeProvider(now = 7_000L)
+    private val repository = GroceryListRepositoryImpl(listDao, itemDao, timeProvider)
+
+    @Test
+    fun `create stamps createdAt and updatedAt from the time provider`() = runBlocking {
+        val inserted = slot<GroceryListEntity>()
+        coEvery { listDao.insert(capture(inserted)) } returns 1L
+
+        repository.create(name = "Weekly groceries", budgetRupiah = null)
+
+        assertEquals(7_000L, inserted.captured.createdAt)
+        assertEquals(7_000L, inserted.captured.updatedAt)
+        assertNull(inserted.captured.completedAt)
+    }
+
+    @Test
+    fun `update refreshes updatedAt but keeps completedAt`() = runBlocking {
+        val updated = slot<GroceryListEntity>()
+        coEvery { listDao.update(capture(updated)) } returns Unit
+
+        repository.update(
+            GroceryList(
+                id = 1,
+                name = "Renamed",
+                status = ListStatus.Completed,
+                budgetRupiah = null,
+                createdAt = 1,
+                updatedAt = 2,
+                completedAt = 3
+            )
+        )
+
+        assertEquals(7_000L, updated.captured.updatedAt)
+        assertEquals(3L, updated.captured.completedAt)
+        assertEquals(1L, updated.captured.createdAt)
+    }
 
     @Test
     fun `observeLists includes items ordered by position`() = runBlocking {

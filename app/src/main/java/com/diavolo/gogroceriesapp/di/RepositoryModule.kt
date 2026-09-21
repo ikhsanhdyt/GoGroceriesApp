@@ -1,5 +1,7 @@
 package com.diavolo.gogroceriesapp.di
 
+import com.diavolo.gogroceriesapp.common.SystemTimeProvider
+import com.diavolo.gogroceriesapp.common.TimeProvider
 import com.diavolo.gogroceriesapp.data.repository.CategoryRepositoryImpl
 import com.diavolo.gogroceriesapp.data.repository.GroceryListRepositoryImpl
 import com.diavolo.gogroceriesapp.domain.repository.CategoryRepository
@@ -25,4 +27,10 @@ abstract class RepositoryModule {
     abstract fun bindCategoryRepository(
         impl: CategoryRepositoryImpl
     ): CategoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTimeProvider(
+        impl: SystemTimeProvider
+    ): TimeProvider
 }

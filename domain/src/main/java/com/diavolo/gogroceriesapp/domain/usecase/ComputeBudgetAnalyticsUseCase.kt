@@ -21,7 +21,7 @@ class ComputeBudgetAnalyticsUseCase @Inject constructor(
     ): BudgetAnalytics {
         val completedTrips = lists
             .filter { it.status == ListStatus.Completed }
-            .sortedByDescending(GroceryList::updatedAt)
+            .sortedByDescending { it.completionTime() }
         val purchasedItems = completedTrips.flatMap { list ->
             list.items.filter(GroceryItem::isChecked)
         }
@@ -67,7 +67,7 @@ class ComputeBudgetAnalyticsUseCase @Inject constructor(
                 TripSpending(
                     listId = list.id,
                     listName = list.name,
-                    completedAt = list.updatedAt,
+                    completedAt = list.completionTime(),
                     amount = computeActualTotalUseCase(
                         list.items.filter(GroceryItem::isChecked)
                     )
@@ -75,6 +75,8 @@ class ComputeBudgetAnalyticsUseCase @Inject constructor(
             }.reversed()
         )
     }
+
+    private fun GroceryList.completionTime(): Long = completedAt ?: updatedAt
 
     private fun computeCategorySpending(
         items: List<GroceryItem>,

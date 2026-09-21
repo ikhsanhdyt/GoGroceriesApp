@@ -59,7 +59,8 @@ fun GroceryListEntity.toDomain(items: List<GroceryItem> = emptyList()): GroceryL
     budgetRupiah = budgetRupiah,
     createdAt = createdAt,
     updatedAt = updatedAt,
-    items = items
+    items = items,
+    completedAt = completedAt
 )
 
 fun ListWithItems.toDomain(): GroceryList = list.toDomain(

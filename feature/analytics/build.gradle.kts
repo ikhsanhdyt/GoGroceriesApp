@@ -30,6 +30,7 @@ android {
 
 dependencies {
     implementation(project(":domain"))
+    implementation(project(":common"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

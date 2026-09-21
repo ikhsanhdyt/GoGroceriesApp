@@ -60,6 +60,31 @@ class ComputeBudgetAnalyticsUseCaseTest {
     }
 
     @Test
+    fun `recent trips follow completion time, not last edit time`() {
+        val lists = listOf(
+            // Finished first, edited most recently.
+            list(1, ListStatus.Completed, updatedAt = 900, budget = null, completedAt = 100),
+            list(2, ListStatus.Completed, updatedAt = 500, budget = null, completedAt = 200)
+        )
+
+        val analytics = useCase(lists, emptyList())
+
+        assertEquals(listOf(1L, 2L), analytics.recentTrips.map { it.listId })
+        assertEquals(listOf(100L, 200L), analytics.recentTrips.map { it.completedAt })
+    }
+
+    @Test
+    fun `completed trip without completion time falls back to its update time`() {
+        val lists = listOf(
+            list(1, ListStatus.Completed, updatedAt = 300, budget = null, completedAt = null)
+        )
+
+        val analytics = useCase(lists, emptyList())
+
+        assertEquals(300L, analytics.recentTrips.single().completedAt)
+    }
+
+    @Test
     fun `analytics returns zero values without completed trips`() {
         val analytics = useCase(emptyList(), emptyList())
 
@@ -74,7 +99,8 @@ class ComputeBudgetAnalyticsUseCaseTest {
         status: ListStatus,
         updatedAt: Long,
         budget: Long?,
-        items: List<GroceryItem>
+        items: List<GroceryItem> = emptyList(),
+        completedAt: Long? = null
     ) = GroceryList(
         id = id,
         name = "Trip $id",
@@ -82,7 +108,8 @@ class ComputeBudgetAnalyticsUseCaseTest {
         budgetRupiah = budget,
         createdAt = updatedAt - 1,
         updatedAt = updatedAt,
-        items = items
+        items = items,
+        completedAt = completedAt
     )
 
     private fun item(
