@@ -32,4 +32,6 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.javax.inject)
+
+    testImplementation(libs.junit)
 }
