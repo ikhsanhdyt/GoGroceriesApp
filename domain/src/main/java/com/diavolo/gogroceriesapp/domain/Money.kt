@@ -10,12 +10,15 @@ value class Money(val rupiah: Long) {
         get() = rupiah.toDouble()
 
     override fun toString(): String {
+        val sign = if (rupiah < 0) "-" else ""
+        // removePrefix instead of abs(): abs(Long.MIN_VALUE) overflows.
         val formatted = rupiah.toString()
+            .removePrefix("-")
             .reversed()
             .chunked(3)
             .joinToString(".")
             .reversed()
-        return "Rp $formatted"
+        return "${sign}Rp $formatted"
     }
 
     companion object {
