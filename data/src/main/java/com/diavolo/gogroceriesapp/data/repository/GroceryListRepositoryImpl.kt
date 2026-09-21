@@ -10,10 +10,8 @@ import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
 import com.diavolo.gogroceriesapp.domain.model.ListStatus
 import com.diavolo.gogroceriesapp.domain.repository.GroceryListRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class GroceryListRepositoryImpl @Inject constructor(
@@ -34,20 +32,19 @@ class GroceryListRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun create(name: String, budgetRupiah: Long?): Long =
-        withContext(Dispatchers.IO) {
-            val now = timeProvider.nowMillis()
-            val entity = GroceryListEntity(
-                name = name,
-                status = ListStatus.Draft.name,
-                budgetRupiah = budgetRupiah,
-                createdAt = now,
-                updatedAt = now
-            )
-            listDao.insert(entity)
-        }
+    override suspend fun create(name: String, budgetRupiah: Long?): Long {
+        val now = timeProvider.nowMillis()
+        val entity = GroceryListEntity(
+            name = name,
+            status = ListStatus.Draft.name,
+            budgetRupiah = budgetRupiah,
+            createdAt = now,
+            updatedAt = now
+        )
+        return listDao.insert(entity)
+    }
 
-    override suspend fun update(list: GroceryList) = withContext(Dispatchers.IO) {
+    override suspend fun update(list: GroceryList) {
         val entity = GroceryListEntity(
             id = list.id,
             name = list.name,
@@ -60,24 +57,14 @@ class GroceryListRepositoryImpl @Inject constructor(
         listDao.update(entity)
     }
 
-    override suspend fun delete(id: Long) = withContext(Dispatchers.IO) {
-        listDao.delete(id)
-    }
+    override suspend fun delete(id: Long) = listDao.delete(id)
 
-    override suspend fun addItem(item: GroceryItem): Long = withContext(Dispatchers.IO) {
-        itemDao.insert(item.toEntity())
-    }
+    override suspend fun addItem(item: GroceryItem): Long = itemDao.insert(item.toEntity())
 
-    override suspend fun updateItem(item: GroceryItem) = withContext(Dispatchers.IO) {
-        itemDao.update(item.toEntity())
-    }
+    override suspend fun updateItem(item: GroceryItem) = itemDao.update(item.toEntity())
 
     override suspend fun toggleChecked(itemId: Long, checked: Boolean) =
-        withContext(Dispatchers.IO) {
-            itemDao.setChecked(itemId, checked)
-        }
+        itemDao.setChecked(itemId, checked)
 
-    override suspend fun deleteItem(itemId: Long) = withContext(Dispatchers.IO) {
-        itemDao.delete(itemId)
-    }
+    override suspend fun deleteItem(itemId: Long) = itemDao.delete(itemId)
 }

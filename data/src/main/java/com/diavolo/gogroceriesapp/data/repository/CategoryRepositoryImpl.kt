@@ -5,10 +5,8 @@ import com.diavolo.gogroceriesapp.data.mapper.toDomain
 import com.diavolo.gogroceriesapp.data.mapper.toEntity
 import com.diavolo.gogroceriesapp.domain.model.Category
 import com.diavolo.gogroceriesapp.domain.repository.CategoryRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class CategoryRepositoryImpl @Inject constructor(
@@ -21,7 +19,6 @@ class CategoryRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun insertCategory(category: Category): Long = withContext(Dispatchers.IO) {
+    override suspend fun insertCategory(category: Category): Long =
         categoryDao.insert(category.toEntity())
-    }
 }
