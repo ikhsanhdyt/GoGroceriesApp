@@ -1,6 +1,5 @@
 package com.diavolo.gogroceriesapp.feature.analytics
 
-import android.graphics.Color.parseColor
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +45,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.diavolo.gogroceriesapp.common.toDisplayDate
+import com.diavolo.gogroceriesapp.core.ui.categoryColor
 import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.BudgetAnalytics
 import com.diavolo.gogroceriesapp.domain.model.CategorySpending
@@ -385,14 +384,14 @@ private fun CategoryBreakdownCard(categories: List<CategorySpending>) {
 
 @Composable
 private fun CategorySpendingRow(category: CategorySpending) {
-    val categoryColor = rememberCategoryColor(category.colorHex)
+    val accentColor = categoryColor(category.colorHex)
 
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(10.dp)
-                    .background(categoryColor, CircleShape)
+                    .background(accentColor, CircleShape)
             )
             Spacer(Modifier.width(8.dp))
             Text(
@@ -412,7 +411,7 @@ private fun CategorySpendingRow(category: CategorySpending) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(7.dp),
-            color = categoryColor,
+            color = accentColor,
             trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
@@ -603,8 +602,3 @@ private fun MessageContent(
         }
     }
 }
-
-@Composable
-private fun rememberCategoryColor(colorHex: String): Color =
-    runCatching { Color(parseColor(colorHex)) }
-        .getOrDefault(MaterialTheme.colorScheme.primary)
