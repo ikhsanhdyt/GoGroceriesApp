@@ -2,6 +2,7 @@ package com.diavolo.gogroceriesapp.feature.activeshopping
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.diavolo.gogroceriesapp.common.suspendRunCatching
 import com.diavolo.gogroceriesapp.domain.model.Category
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.usecase.ComputeActualTotalUseCase
@@ -109,7 +110,7 @@ class ActiveShoppingViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 updatingItemIds = _uiState.value.updatingItemIds + item.id
             )
-            runCatching {
+            suspendRunCatching {
                 toggleItemCheckedUseCase(item.id, !item.isChecked)
             }.onFailure {
                 eventChannel.send(
@@ -132,7 +133,7 @@ class ActiveShoppingViewModel @Inject constructor(
                 priceUpdateError = null,
                 updatingItemIds = _uiState.value.updatingItemIds + item.id
             )
-            runCatching {
+            suspendRunCatching {
                 updateItemUseCase(item.copy(actualPriceRupiah = actualPriceRupiah))
             }.onSuccess {
                 eventChannel.send(ActiveShoppingEvent.PriceUpdated)
@@ -153,7 +154,7 @@ class ActiveShoppingViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isFinishing = true)
-            runCatching {
+            suspendRunCatching {
                 finishShoppingUseCase(list)
             }.onSuccess {
                 eventChannel.send(ActiveShoppingEvent.ShoppingFinished)

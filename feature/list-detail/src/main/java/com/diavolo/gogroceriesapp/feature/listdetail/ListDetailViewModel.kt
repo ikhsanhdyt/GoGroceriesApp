@@ -2,6 +2,7 @@ package com.diavolo.gogroceriesapp.feature.listdetail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.diavolo.gogroceriesapp.common.suspendRunCatching
 import com.diavolo.gogroceriesapp.domain.model.Category
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
@@ -17,11 +18,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -45,8 +48,28 @@ class ListDetailViewModel @Inject constructor(
     private val startShoppingUseCase: StartShoppingUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ListDetailUiState())
-    val uiState: StateFlow<ListDetailUiState> = _uiState.asStateFlow()
+    /**
+     * Screen content coming from the database. Only the data fields of [ListDetailUiState] are
+     * used here; the operation flags live in [operationState].
+     */
+    private val dataState = MutableStateFlow(ListDetailUiState())
+
+    /**
+     * In-flight operations and their errors. Every writer uses [MutableStateFlow.update], and the
+     * database stream never reads or copies these values, so neither can overwrite the other.
+     */
+    private val operationState = MutableStateFlow(OperationState())
+
+    val uiState: StateFlow<ListDetailUiState> = combine(dataState, operationState) { data, operation ->
+        data.copy(
+            isAddingItem = operation.isAddingItem,
+            addItemError = operation.addItemError,
+            editItemError = operation.editItemError,
+            updatingItemIds = operation.updatingItemIds,
+            isStartingShopping = operation.isStartingShopping
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, ListDetailUiState())
+
     private val eventChannel = Channel<ListDetailEvent>(Channel.BUFFERED)
     val events = eventChannel.receiveAsFlow()
 
@@ -59,7 +82,7 @@ class ListDetailViewModel @Inject constructor(
         currentListId = listId
         observationJob?.cancel()
         observationJob = viewModelScope.launch {
-            _uiState.value = ListDetailUiState(isLoading = true)
+            dataState.value = ListDetailUiState(isLoading = true)
             combine(
                 getListUseCase(listId),
                 getCategoriesUseCase()
@@ -72,12 +95,7 @@ class ListDetailViewModel @Inject constructor(
                         list = list,
                         categories = categories,
                         itemGroups = groupItems(list.items, categories),
-                        estimatedTotal = computeEstimatedTotal(list.items),
-                        isAddingItem = _uiState.value.isAddingItem,
-                        addItemError = _uiState.value.addItemError,
-                        editItemError = _uiState.value.editItemError,
-                        updatingItemIds = _uiState.value.updatingItemIds,
-                        isStartingShopping = _uiState.value.isStartingShopping
+                        estimatedTotal = computeEstimatedTotal(list.items)
                     )
                 }
             }
@@ -89,7 +107,7 @@ class ListDetailViewModel @Inject constructor(
                         )
                     )
                 }
-                .collect { state -> _uiState.value = state }
+                .collect { state -> dataState.value = state }
         }
     }
 
@@ -101,11 +119,11 @@ class ListDetailViewModel @Inject constructor(
     }
 
     fun clearAddItemError() {
-        _uiState.value = _uiState.value.copy(addItemError = null)
+        operationState.update { it.copy(addItemError = null) }
     }
 
     fun clearEditItemError() {
-        _uiState.value = _uiState.value.copy(editItemError = null)
+        operationState.update { it.copy(editItemError = null) }
     }
 
     fun addItem(
@@ -115,16 +133,13 @@ class ListDetailViewModel @Inject constructor(
         categoryId: Long?,
         estimatedPriceRupiah: Long?
     ) {
-        val list = _uiState.value.list ?: return
-        if (name.isBlank() || quantity <= 0 || _uiState.value.isAddingItem) return
+        val list = dataState.value.list ?: return
+        if (name.isBlank() || quantity <= 0 || operationState.value.isAddingItem) return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isAddingItem = true,
-                addItemError = null
-            )
+            operationState.update { it.copy(isAddingItem = true, addItemError = null) }
             val nextPosition = (list.items.maxOfOrNull(GroceryItem::position) ?: -1) + 1
-            runCatching {
+            suspendRunCatching {
                 addItemUseCase(
                     GroceryItem(
                         listId = list.id,
@@ -140,25 +155,25 @@ class ListDetailViewModel @Inject constructor(
                     )
                 )
             }.onSuccess {
-                _uiState.value = _uiState.value.copy(isAddingItem = false)
+                operationState.update { it.copy(isAddingItem = false) }
                 eventChannel.send(ListDetailEvent.ItemAdded)
             }.onFailure {
-                _uiState.value = _uiState.value.copy(
-                    isAddingItem = false,
-                    addItemError = "Couldn't add this item. Please try again."
-                )
+                operationState.update {
+                    it.copy(
+                        isAddingItem = false,
+                        addItemError = "Couldn't add this item. Please try again."
+                    )
+                }
             }
         }
     }
 
     fun toggleItem(item: GroceryItem) {
-        if (item.id in _uiState.value.updatingItemIds) return
+        if (item.id in operationState.value.updatingItemIds) return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                updatingItemIds = _uiState.value.updatingItemIds + item.id
-            )
-            runCatching {
+            operationState.update { it.copy(updatingItemIds = it.updatingItemIds + item.id) }
+            suspendRunCatching {
                 toggleItemCheckedUseCase(item.id, !item.isChecked)
             }.onFailure {
                 eventChannel.send(
@@ -167,9 +182,7 @@ class ListDetailViewModel @Inject constructor(
                     )
                 )
             }
-            _uiState.value = _uiState.value.copy(
-                updatingItemIds = _uiState.value.updatingItemIds - item.id
-            )
+            operationState.update { it.copy(updatingItemIds = it.updatingItemIds - item.id) }
         }
     }
 
@@ -184,15 +197,17 @@ class ListDetailViewModel @Inject constructor(
         if (
             name.isBlank() ||
             quantity <= 0 ||
-            item.id in _uiState.value.updatingItemIds
+            item.id in operationState.value.updatingItemIds
         ) return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                editItemError = null,
-                updatingItemIds = _uiState.value.updatingItemIds + item.id
-            )
-            runCatching {
+            operationState.update {
+                it.copy(
+                    editItemError = null,
+                    updatingItemIds = it.updatingItemIds + item.id
+                )
+            }
+            suspendRunCatching {
                 updateItemUseCase(
                     item.copy(
                         name = name.trim(),
@@ -205,24 +220,20 @@ class ListDetailViewModel @Inject constructor(
             }.onSuccess {
                 eventChannel.send(ListDetailEvent.ItemUpdated)
             }.onFailure {
-                _uiState.value = _uiState.value.copy(
-                    editItemError = "Couldn't save your changes. Please try again."
-                )
+                operationState.update {
+                    it.copy(editItemError = "Couldn't save your changes. Please try again.")
+                }
             }
-            _uiState.value = _uiState.value.copy(
-                updatingItemIds = _uiState.value.updatingItemIds - item.id
-            )
+            operationState.update { it.copy(updatingItemIds = it.updatingItemIds - item.id) }
         }
     }
 
     fun deleteItem(item: GroceryItem) {
-        if (item.id in _uiState.value.updatingItemIds) return
+        if (item.id in operationState.value.updatingItemIds) return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                updatingItemIds = _uiState.value.updatingItemIds + item.id
-            )
-            runCatching {
+            operationState.update { it.copy(updatingItemIds = it.updatingItemIds + item.id) }
+            suspendRunCatching {
                 deleteItemUseCase(item.id)
             }.onSuccess {
                 eventChannel.send(ListDetailEvent.ItemDeleted)
@@ -233,19 +244,17 @@ class ListDetailViewModel @Inject constructor(
                     )
                 )
             }
-            _uiState.value = _uiState.value.copy(
-                updatingItemIds = _uiState.value.updatingItemIds - item.id
-            )
+            operationState.update { it.copy(updatingItemIds = it.updatingItemIds - item.id) }
         }
     }
 
     fun startShopping() {
-        val list = _uiState.value.list ?: return
-        if (_uiState.value.isStartingShopping) return
+        val list = dataState.value.list ?: return
+        if (operationState.value.isStartingShopping) return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isStartingShopping = true)
-            runCatching {
+            operationState.update { it.copy(isStartingShopping = true) }
+            suspendRunCatching {
                 startShoppingUseCase(list)
             }.onSuccess {
                 eventChannel.send(ListDetailEvent.ShoppingStarted(list.id))
@@ -256,7 +265,7 @@ class ListDetailViewModel @Inject constructor(
                     )
                 )
             }
-            _uiState.value = _uiState.value.copy(isStartingShopping = false)
+            operationState.update { it.copy(isStartingShopping = false) }
         }
     }
 
@@ -283,6 +292,14 @@ class ListDetailViewModel @Inject constructor(
             )
             .map(GroupWithOrder::group)
     }
+
+    private data class OperationState(
+        val isAddingItem: Boolean = false,
+        val addItemError: String? = null,
+        val editItemError: String? = null,
+        val updatingItemIds: Set<Long> = emptySet(),
+        val isStartingShopping: Boolean = false
+    )
 
     private data class GroupWithOrder(
         val group: GroceryItemGroup,

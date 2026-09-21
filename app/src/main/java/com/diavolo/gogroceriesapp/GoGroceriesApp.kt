@@ -2,6 +2,7 @@ package com.diavolo.gogroceriesapp
 
 import android.app.Application
 import android.util.Log
+import com.diavolo.gogroceriesapp.common.suspendRunCatching
 import com.diavolo.gogroceriesapp.data.local.DefaultCategorySeeder
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +22,7 @@ class GoGroceriesApp : Application() {
     override fun onCreate() {
         super.onCreate()
         applicationScope.launch {
-            runCatching { defaultCategorySeeder.seed() }
+            suspendRunCatching { defaultCategorySeeder.seed() }
                 .onFailure { error ->
                     Log.e("GoGroceriesApp", "Unable to seed default categories", error)
                 }
