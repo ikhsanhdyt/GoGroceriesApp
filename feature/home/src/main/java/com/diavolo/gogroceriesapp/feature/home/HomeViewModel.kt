@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -64,11 +65,11 @@ class HomeViewModel @Inject constructor(
     )
 
     fun retryLoading() {
-        retryTrigger.value += 1
+        retryTrigger.update { it + 1 }
     }
 
     fun clearCreationError() {
-        creationState.value = creationState.value.copy(error = null)
+        creationState.update { it.copy(error = null) }
     }
 
     fun createList(name: String, budgetRupiah: Long?) {

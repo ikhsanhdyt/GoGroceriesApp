@@ -16,11 +16,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -41,8 +43,26 @@ class ActiveShoppingViewModel @Inject constructor(
     private val updateItemUseCase: UpdateItemUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ActiveShoppingUiState())
-    val uiState: StateFlow<ActiveShoppingUiState> = _uiState.asStateFlow()
+    /**
+     * Screen content coming from the database. Only the data fields of [ActiveShoppingUiState]
+     * are used here; the operation flags live in [operationState].
+     *
+     * Every write to the database re-emits this stream, so it must never read or copy the
+     * operation flags: a stale copy would overwrite a flag that changed in the meantime.
+     */
+    private val dataState = MutableStateFlow(ActiveShoppingUiState())
+
+    /** In-flight operations and their errors. Writers use [MutableStateFlow.update]. */
+    private val operationState = MutableStateFlow(OperationState())
+
+    val uiState: StateFlow<ActiveShoppingUiState> =
+        combine(dataState, operationState) { data, operation ->
+            data.copy(
+                priceUpdateError = operation.priceUpdateError,
+                updatingItemIds = operation.updatingItemIds,
+                isFinishing = operation.isFinishing
+            )
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, ActiveShoppingUiState())
 
     private val eventChannel = Channel<ActiveShoppingEvent>(Channel.BUFFERED)
     val events = eventChannel.receiveAsFlow()
@@ -56,7 +76,7 @@ class ActiveShoppingViewModel @Inject constructor(
         currentListId = listId
         observationJob?.cancel()
         observationJob = viewModelScope.launch {
-            _uiState.value = ActiveShoppingUiState(isLoading = true)
+            dataState.value = ActiveShoppingUiState(isLoading = true)
             combine(
                 getListUseCase(listId),
                 getCategoriesUseCase()
@@ -73,10 +93,7 @@ class ActiveShoppingViewModel @Inject constructor(
                         actualCheckedSubtotal = computeActualTotalUseCase(checkedItems),
                         checkedItemsMissingPrice = checkedItems.count {
                             it.actualPriceRupiah == null
-                        },
-                        priceUpdateError = _uiState.value.priceUpdateError,
-                        updatingItemIds = _uiState.value.updatingItemIds,
-                        isFinishing = _uiState.value.isFinishing
+                        }
                     )
                 }
             }
@@ -88,7 +105,7 @@ class ActiveShoppingViewModel @Inject constructor(
                         )
                     )
                 }
-                .collect { state -> _uiState.value = state }
+                .collect { state -> dataState.value = state }
         }
     }
 
@@ -100,16 +117,14 @@ class ActiveShoppingViewModel @Inject constructor(
     }
 
     fun clearPriceUpdateError() {
-        _uiState.value = _uiState.value.copy(priceUpdateError = null)
+        operationState.update { it.copy(priceUpdateError = null) }
     }
 
     fun toggleItem(item: GroceryItem) {
-        if (item.id in _uiState.value.updatingItemIds) return
+        if (item.id in operationState.value.updatingItemIds) return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                updatingItemIds = _uiState.value.updatingItemIds + item.id
-            )
+            operationState.update { it.copy(updatingItemIds = it.updatingItemIds + item.id) }
             suspendRunCatching {
                 toggleItemCheckedUseCase(item.id, !item.isChecked)
             }.onFailure {
@@ -119,41 +134,39 @@ class ActiveShoppingViewModel @Inject constructor(
                     )
                 )
             }
-            _uiState.value = _uiState.value.copy(
-                updatingItemIds = _uiState.value.updatingItemIds - item.id
-            )
+            operationState.update { it.copy(updatingItemIds = it.updatingItemIds - item.id) }
         }
     }
 
     fun updateActualPrice(item: GroceryItem, actualPriceRupiah: Long?) {
-        if (item.id in _uiState.value.updatingItemIds) return
+        if (item.id in operationState.value.updatingItemIds) return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                priceUpdateError = null,
-                updatingItemIds = _uiState.value.updatingItemIds + item.id
-            )
+            operationState.update {
+                it.copy(
+                    priceUpdateError = null,
+                    updatingItemIds = it.updatingItemIds + item.id
+                )
+            }
             suspendRunCatching {
                 updateItemUseCase(item.copy(actualPriceRupiah = actualPriceRupiah))
             }.onSuccess {
                 eventChannel.send(ActiveShoppingEvent.PriceUpdated)
             }.onFailure {
-                _uiState.value = _uiState.value.copy(
-                    priceUpdateError = "Couldn't save the actual price. Please try again."
-                )
+                operationState.update {
+                    it.copy(priceUpdateError = "Couldn't save the actual price. Please try again.")
+                }
             }
-            _uiState.value = _uiState.value.copy(
-                updatingItemIds = _uiState.value.updatingItemIds - item.id
-            )
+            operationState.update { it.copy(updatingItemIds = it.updatingItemIds - item.id) }
         }
     }
 
     fun finishShopping() {
-        val list = _uiState.value.list ?: return
-        if (_uiState.value.isFinishing) return
+        val list = dataState.value.list ?: return
+        if (operationState.value.isFinishing) return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isFinishing = true)
+            operationState.update { it.copy(isFinishing = true) }
             suspendRunCatching {
                 finishShoppingUseCase(list)
             }.onSuccess {
@@ -165,7 +178,7 @@ class ActiveShoppingViewModel @Inject constructor(
                     )
                 )
             }
-            _uiState.value = _uiState.value.copy(isFinishing = false)
+            operationState.update { it.copy(isFinishing = false) }
         }
     }
 
@@ -195,6 +208,12 @@ class ActiveShoppingViewModel @Inject constructor(
             )
             .map(GroupWithOrder::group)
     }
+
+    private data class OperationState(
+        val priceUpdateError: String? = null,
+        val updatingItemIds: Set<Long> = emptySet(),
+        val isFinishing: Boolean = false
+    )
 
     private data class GroupWithOrder(
         val group: ShoppingItemGroup,
