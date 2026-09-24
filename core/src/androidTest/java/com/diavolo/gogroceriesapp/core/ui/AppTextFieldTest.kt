@@ -15,8 +15,9 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Renders the real composable, so it covers what the unit tests cannot: that the preset's filter
- * and visual transformation are actually wired into the text field.
+ * Renders the real composable, so it covers what the unit tests cannot: that `isCurrency` is
+ * actually wired into the rendered field, and that the [AppTextField] refactor for it did not
+ * break plain (non-currency) fields.
  */
 class AppTextFieldTest {
 
@@ -34,9 +35,10 @@ class AppTextFieldTest {
                     onValueChange = {
                         value = it
                         raw = it
+
                     },
                     label = "Budget",
-                    input = AppTextFieldInput.Currency,
+                    isCurrency = true,
                     prefix = "Rp "
                 )
             }
@@ -61,7 +63,7 @@ class AppTextFieldTest {
                         raw = it
                     },
                     label = "Budget",
-                    input = AppTextFieldInput.Currency
+                    isCurrency = true
                 )
             }
         }
@@ -80,7 +82,7 @@ class AppTextFieldTest {
                     value = "1234567",
                     onValueChange = {},
                     label = "Estimated price",
-                    input = AppTextFieldInput.Currency,
+                    isCurrency = true,
                     prefix = "Rp "
                 )
             }
@@ -90,16 +92,50 @@ class AppTextFieldTest {
     }
 
     @Test
-    fun textField_leavesTheInputUntouched() {
+    fun decimalField_keepsDigitsAndASingleDot() {
+        var raw = ""
         composeRule.setContent {
             var value by remember { mutableStateOf("") }
             MaterialTheme {
-                AppTextField(value = value, onValueChange = { value = it }, label = "List name")
+                AppTextField(
+                    value = value,
+                    onValueChange = {
+                        value = it
+                        raw = it
+                    },
+                    label = "Quantity",
+                    isDecimal = true
+                )
             }
         }
 
-        composeRule.onNode(hasSetTextAction()).performTextInput("Weekly 1500")
+        composeRule.onNode(hasSetTextAction()).performTextInput("1.2.3abc")
 
-        composeRule.onNodeWithText("Weekly 1500").assertIsDisplayed()
+        assertEquals("1.23", raw)
+        composeRule.onNodeWithText("1.23").assertIsDisplayed()
+    }
+
+    @Test
+    fun plainField_withMaxLength_stillTruncates() {
+        var raw = ""
+        composeRule.setContent {
+            var value by remember { mutableStateOf("") }
+            MaterialTheme {
+                AppTextField(
+                    value = value,
+                    onValueChange = {
+                        value = it
+                        raw = it
+                    },
+                    label = "Note",
+                    maxLength = 5
+                )
+            }
+        }
+
+        composeRule.onNode(hasSetTextAction()).performTextInput("Weekly groceries")
+
+        assertEquals("Weekl", raw)
+        composeRule.onNodeWithText("Weekl").assertIsDisplayed()
     }
 }

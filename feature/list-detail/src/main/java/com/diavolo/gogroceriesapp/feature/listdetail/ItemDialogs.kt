@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -34,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.diavolo.gogroceriesapp.core.ui.AppTextField
-import com.diavolo.gogroceriesapp.core.ui.AppTextFieldInput
 import com.diavolo.gogroceriesapp.domain.model.Category
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.UnitOfMeasure
@@ -72,7 +70,6 @@ internal fun ItemFormSheet(
     var categoryMenuExpanded by remember { mutableStateOf(false) }
     var submitted by remember { mutableStateOf(false) }
 
-    val sheetBackground = BottomSheetDefaults.ContainerColor
     val parsedQuantity = quantity.toDoubleOrNull()
     val quantityIsInvalid = parsedQuantity == null || parsedQuantity <= 0
     val parsedPrice = estimatedPrice.toLongOrNull()
@@ -109,10 +106,8 @@ internal fun ItemFormSheet(
                 onValueChange = { name = it },
                 modifier = Modifier.fillMaxWidth(),
                 label = "Item name",
-                labelBackground = sheetBackground,
                 placeholder = "e.g. Organic bananas",
-                isError = submitted && name.isBlank(),
-                supportingText = if (submitted && name.isBlank()) "Enter an item name." else null
+                errorText = if (submitted && name.isBlank()) "Enter an item name." else null
             )
             Spacer(Modifier.height(12.dp))
 
@@ -121,14 +116,12 @@ internal fun ItemFormSheet(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 AppTextField(
-                    input = AppTextFieldInput.Decimal,
                     value = quantity,
                     onValueChange = { quantity = it },
                     modifier = Modifier.weight(1f),
                     label = "Quantity",
-                    labelBackground = sheetBackground,
-                    isError = submitted && quantityIsInvalid,
-                    supportingText = if (submitted && quantityIsInvalid) "Enter more than 0." else null
+                    isDecimal = true,
+                    errorText = if (submitted && quantityIsInvalid) "Enter more than 0." else null
                 )
 
                 ExposedDropdownMenuBox(
@@ -144,7 +137,6 @@ internal fun ItemFormSheet(
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         readOnly = true,
                         label = "Unit",
-                        labelBackground = sheetBackground,
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(unitMenuExpanded)
                         }
@@ -183,7 +175,6 @@ internal fun ItemFormSheet(
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         readOnly = true,
                         label = "Category",
-                        labelBackground = sheetBackground,
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(categoryMenuExpanded)
                         }
@@ -214,20 +205,19 @@ internal fun ItemFormSheet(
             }
 
             AppTextField(
-                input = AppTextFieldInput.Currency,
-                prefix = "Rp ",
-                placeholder = "0",
                 value = estimatedPrice,
                 onValueChange = { estimatedPrice = it },
                 modifier = Modifier.fillMaxWidth(),
                 label = "Estimated price (optional)",
-                labelBackground = sheetBackground,
-                isError = submitted && priceIsInvalid,
-                supportingText = if (submitted && priceIsInvalid) {
+                isCurrency = true,
+                prefix = "Rp ",
+                placeholder = "0",
+                errorText = if (submitted && priceIsInvalid) {
                     "Enter a valid whole-rupiah amount."
                 } else {
-                    "Estimated price per unit."
-                }
+                    null
+                },
+                helperText = "Estimated price per unit."
             )
 
             errorMessage?.let { message ->

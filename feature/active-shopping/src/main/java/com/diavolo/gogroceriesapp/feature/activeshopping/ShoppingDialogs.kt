@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.diavolo.gogroceriesapp.core.ui.AppTextField
-import com.diavolo.gogroceriesapp.core.ui.AppTextFieldInput
 import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
@@ -53,19 +52,21 @@ internal fun ActualPriceDialog(
                 )
                 Spacer(Modifier.height(16.dp))
                 AppTextField(
-                    input = AppTextFieldInput.Currency,
-                    prefix = "Rp ",
                     value = price,
                     onValueChange = { price = it },
                     modifier = Modifier.fillMaxWidth(),
                     label = "Actual unit price",
-                    isError = submitted && priceIsInvalid,
-                    labelBackground = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    supportingText = when {
-                        submitted && priceIsInvalid -> "Enter a valid whole-rupiah amount."
-                        parsedPrice != null ->
-                            "Item subtotal ${Money.fromRupiah(parsedPrice * item.quantity)}"
-                        else -> "Used for the completed-trip total."
+                    isCurrency = true,
+                    prefix = "Rp ",
+                    errorText = if (submitted && priceIsInvalid) {
+                        "Enter a valid whole-rupiah amount."
+                    } else {
+                        null
+                    },
+                    helperText = if (parsedPrice != null) {
+                        "Item subtotal ${Money.fromRupiah(parsedPrice * item.quantity)}"
+                    } else {
+                        "Used for the completed-trip total."
                     }
                 )
                 errorMessage?.let { message ->

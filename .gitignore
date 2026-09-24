@@ -3,6 +3,10 @@
 .kotlin/
 build/
 
+# APK/AAB exported via Android Studio's Generate Signed Bundle/APK wizard
+# (its default destination, app/release/, sits outside app/build/, so build/ above doesn't cover it)
+/app/release/
+
 # Local configuration file (sdk path, etc)
 local.properties
 

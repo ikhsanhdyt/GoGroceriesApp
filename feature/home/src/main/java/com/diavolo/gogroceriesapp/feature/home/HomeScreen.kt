@@ -32,7 +32,6 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.BottomSheetDefaults.ContainerColor
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -72,7 +71,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.diavolo.gogroceriesapp.core.ui.AppTextField
-import com.diavolo.gogroceriesapp.core.ui.AppTextFieldInput
 import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
 import com.diavolo.gogroceriesapp.domain.model.ListStatus
@@ -444,7 +442,6 @@ private fun CreateListSheet(
     var isBudgetFocused by remember { mutableStateOf(false) }
     val budgetBringIntoViewRequester = remember { BringIntoViewRequester() }
     val focusManager = LocalFocusManager.current
-    val sheetBackground = ContainerColor
     val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
     val parsedBudget = budget.trim().toLongOrNull()
     val budgetIsInvalid = budget.isNotBlank() && (parsedBudget == null || parsedBudget < 0)
@@ -485,15 +482,10 @@ private fun CreateListSheet(
                 modifier = Modifier.fillMaxWidth(),
                 label = "List name",
                 placeholder = "e.g. Weekly groceries",
-                labelBackground = sheetBackground,
-                isError = showNameError,
-                supportingText = if (showNameError) "Enter a name for your list." else null
+                errorText = if (showNameError) "Enter a name for your list." else null
             )
             Spacer(Modifier.height(12.dp))
             AppTextField(
-                input = AppTextFieldInput.Currency,
-                prefix = "Rp ",
-                placeholder = "0",
                 value = budget,
                 onValueChange = { budget = it },
                 modifier = Modifier
@@ -501,13 +493,11 @@ private fun CreateListSheet(
                     .bringIntoViewRequester(budgetBringIntoViewRequester)
                     .onFocusChanged { isBudgetFocused = it.isFocused },
                 label = "Budget (optional)",
-                labelBackground = sheetBackground,
-                isError = budgetIsInvalid,
-                supportingText = if (budgetIsInvalid) {
-                    "Enter a valid budget."
-                } else {
-                    "Set a limit for this shopping trip."
-                },
+                isCurrency = true,
+                prefix = "Rp ",
+                placeholder = "0",
+                errorText = if (budgetIsInvalid) "Enter a valid budget." else null,
+                helperText = "Set a limit for this shopping trip.",
                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
             )
             Spacer(Modifier.height(24.dp))
