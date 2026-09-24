@@ -38,7 +38,6 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.material3.icon)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
