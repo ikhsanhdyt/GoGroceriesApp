@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,6 +26,8 @@ import com.diavolo.gogroceriesapp.core.ui.AppTextField
 import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
+import com.diavolo.gogroceriesapp.feature.activeshopping.scan.PriceScannerDialog
+import com.diavolo.gogroceriesapp.feature.activeshopping.scan.rememberHasCamera
 
 @Composable
 internal fun ActualPriceDialog(
@@ -37,6 +41,8 @@ internal fun ActualPriceDialog(
         mutableStateOf(item.actualPriceRupiah?.toString().orEmpty())
     }
     var submitted by remember(item.id) { mutableStateOf(false) }
+    var showScanner by remember { mutableStateOf(false) }
+    val hasCamera = rememberHasCamera()
     val parsedPrice = price.toLongOrNull()
     val priceIsInvalid = price.isBlank() || parsedPrice == null
 
@@ -58,6 +64,21 @@ internal fun ActualPriceDialog(
                     label = "Actual unit price",
                     isCurrency = true,
                     prefix = "Rp ",
+                    trailingIcon = if (hasCamera) {
+                        {
+                            IconButton(
+                                onClick = { showScanner = true },
+                                enabled = !isSaving
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.PhotoCamera,
+                                    contentDescription = "Scan price tag"
+                                )
+                            }
+                        }
+                    } else {
+                        null
+                    },
                     errorText = if (submitted && priceIsInvalid) {
                         "Enter a valid whole-rupiah amount."
                     } else {
@@ -105,6 +126,17 @@ internal fun ActualPriceDialog(
             }
         }
     )
+
+    if (showScanner) {
+        PriceScannerDialog(
+            onPriceSelected = { rupiah ->
+                price = rupiah.toString()
+                showScanner = false
+            },
+            onDismiss = { showScanner = false },
+            formatPrice = { rupiah -> Money(rupiah).toString() }
+        )
+    }
 }
 
 @Composable

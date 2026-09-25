@@ -32,12 +32,21 @@ android {
 dependencies {
     implementation(project(":domain"))
     implementation(project(":core:ui"))
+    implementation(project(":core:util"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
     implementation(libs.compose.material3.icon)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.activity.compose)
+
+    // Price scanner
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    implementation(libs.camerax.mlkit.vision)
+    implementation(libs.mlkit.text.recognition)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
