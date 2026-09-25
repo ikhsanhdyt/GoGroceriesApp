@@ -51,8 +51,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.diavolo.gogroceriesapp.common.toDisplayDate
 import com.diavolo.gogroceriesapp.core.ui.categoryColor
+import com.diavolo.gogroceriesapp.core.util.toDisplayDate
 import com.diavolo.gogroceriesapp.domain.Money
 import com.diavolo.gogroceriesapp.domain.model.BudgetAnalytics
 import com.diavolo.gogroceriesapp.domain.model.CategorySpending

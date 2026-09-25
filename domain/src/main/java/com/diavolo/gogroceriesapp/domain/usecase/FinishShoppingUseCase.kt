@@ -1,6 +1,6 @@
 package com.diavolo.gogroceriesapp.domain.usecase
 
-import com.diavolo.gogroceriesapp.common.TimeProvider
+import com.diavolo.gogroceriesapp.core.util.TimeProvider
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
 import com.diavolo.gogroceriesapp.domain.model.ListStatus
 import com.diavolo.gogroceriesapp.domain.repository.GroceryListRepository

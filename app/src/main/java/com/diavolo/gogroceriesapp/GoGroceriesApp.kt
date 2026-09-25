@@ -2,7 +2,7 @@ package com.diavolo.gogroceriesapp
 
 import android.app.Application
 import android.util.Log
-import com.diavolo.gogroceriesapp.common.suspendRunCatching
+import com.diavolo.gogroceriesapp.core.util.suspendRunCatching
 import com.diavolo.gogroceriesapp.data.local.DefaultCategorySeeder
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope

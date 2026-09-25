@@ -27,8 +27,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "GoGroceriesApp"
 include(":app")
-include(":core")
-include(":common")
+include(":core:ui")
+include(":core:util")
 include(":domain")
 include(":data")
 include(":feature:home")

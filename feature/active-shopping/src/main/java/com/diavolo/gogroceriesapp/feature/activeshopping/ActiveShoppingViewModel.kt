@@ -2,7 +2,7 @@ package com.diavolo.gogroceriesapp.feature.activeshopping
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.diavolo.gogroceriesapp.common.suspendRunCatching
+import com.diavolo.gogroceriesapp.core.util.suspendRunCatching
 import com.diavolo.gogroceriesapp.domain.model.Category
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.usecase.ComputeActualTotalUseCase

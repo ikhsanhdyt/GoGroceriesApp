@@ -1,4 +1,4 @@
-package com.diavolo.gogroceriesapp.common
+package com.diavolo.gogroceriesapp.core.util
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

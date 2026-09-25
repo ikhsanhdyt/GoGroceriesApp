@@ -1,4 +1,4 @@
-package com.diavolo.gogroceriesapp.common
+package com.diavolo.gogroceriesapp.core.util
 
 import java.time.Instant
 import java.time.ZoneId

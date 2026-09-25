@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.diavolo.gogroceriesapp.core"
+    namespace = "com.diavolo.gogroceriesapp.core.ui"
     compileSdk = 35
 
     defaultConfig {

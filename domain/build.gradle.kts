@@ -15,7 +15,7 @@ kotlin {
 }
 
 dependencies {
-    api(project(":common"))
+    api(project(":core:util"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.javax.inject)
 

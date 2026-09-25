@@ -1,6 +1,6 @@
 package com.diavolo.gogroceriesapp.data.repository
 
-import com.diavolo.gogroceriesapp.common.TimeProvider
+import com.diavolo.gogroceriesapp.core.util.TimeProvider
 import com.diavolo.gogroceriesapp.data.local.dao.GroceryItemDao
 import com.diavolo.gogroceriesapp.data.local.dao.GroceryListDao
 import com.diavolo.gogroceriesapp.data.local.entity.GroceryListEntity

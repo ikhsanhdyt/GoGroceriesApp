@@ -1,6 +1,6 @@
 package com.diavolo.gogroceriesapp.feature.activeshopping
 
-import com.diavolo.gogroceriesapp.common.TimeProvider
+import com.diavolo.gogroceriesapp.core.util.TimeProvider
 import com.diavolo.gogroceriesapp.domain.model.Category
 import com.diavolo.gogroceriesapp.domain.model.GroceryItem
 import com.diavolo.gogroceriesapp.domain.model.GroceryList

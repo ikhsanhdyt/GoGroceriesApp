@@ -1,7 +1,7 @@
 package com.diavolo.gogroceriesapp.di
 
-import com.diavolo.gogroceriesapp.common.SystemTimeProvider
-import com.diavolo.gogroceriesapp.common.TimeProvider
+import com.diavolo.gogroceriesapp.core.util.SystemTimeProvider
+import com.diavolo.gogroceriesapp.core.util.TimeProvider
 import com.diavolo.gogroceriesapp.data.repository.CategoryRepositoryImpl
 import com.diavolo.gogroceriesapp.data.repository.GroceryListRepositoryImpl
 import com.diavolo.gogroceriesapp.domain.repository.CategoryRepository

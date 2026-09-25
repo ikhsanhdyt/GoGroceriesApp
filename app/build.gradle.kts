@@ -51,8 +51,8 @@ android {
 dependencies {
     implementation(project(":domain"))
     implementation(project(":data"))
-    implementation(project(":core"))
-    implementation(project(":common"))
+    implementation(project(":core:ui"))
+    implementation(project(":core:util"))
     implementation(project(":feature:home"))
     implementation(project(":feature:list-detail"))
     implementation(project(":feature:active-shopping"))

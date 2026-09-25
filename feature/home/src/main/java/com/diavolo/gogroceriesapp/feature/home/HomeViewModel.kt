@@ -2,7 +2,7 @@ package com.diavolo.gogroceriesapp.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.diavolo.gogroceriesapp.common.suspendRunCatching
+import com.diavolo.gogroceriesapp.core.util.suspendRunCatching
 import com.diavolo.gogroceriesapp.domain.model.GroceryList
 import com.diavolo.gogroceriesapp.domain.usecase.CreateListUseCase
 import com.diavolo.gogroceriesapp.domain.usecase.GetListsUseCase

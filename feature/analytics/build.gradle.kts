@@ -30,8 +30,8 @@ android {
 
 dependencies {
     implementation(project(":domain"))
-    implementation(project(":common"))
-    implementation(project(":core"))
+    implementation(project(":core:util"))
+    implementation(project(":core:ui"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
