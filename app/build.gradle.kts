@@ -54,6 +54,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:util"))
     implementation(project(":feature:home"))
+    implementation(project(":feature:categories"))
     implementation(project(":feature:list-detail"))
     implementation(project(":feature:active-shopping"))
     implementation(project(":feature:trip-summary"))

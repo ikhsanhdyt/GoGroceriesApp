@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -79,6 +80,7 @@ import com.diavolo.gogroceriesapp.domain.model.ListStatus
 fun HomeRoute(
     onListClick: (Long) -> Unit,
     onAnalyticsClick: () -> Unit,
+    onCategoriesClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -99,7 +101,8 @@ fun HomeRoute(
         onCreateListClick = openCreateSheet,
         onRetryClick = viewModel::retryLoading,
         onListClick = onListClick,
-        onAnalyticsClick = onAnalyticsClick
+        onAnalyticsClick = onAnalyticsClick,
+        onCategoriesClick = onCategoriesClick
     )
 
     if (showCreateSheet) {
@@ -120,6 +123,7 @@ fun HomeScreen(
     onRetryClick: () -> Unit,
     onListClick: (Long) -> Unit,
     onAnalyticsClick: () -> Unit,
+    onCategoriesClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -141,6 +145,12 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onCategoriesClick) {
+                        Icon(
+                            imageVector = Outlined.Category,
+                            contentDescription = "Manage categories"
+                        )
+                    }
                     IconButton(onClick = onAnalyticsClick) {
                         Icon(
                             imageVector = Outlined.BarChart,

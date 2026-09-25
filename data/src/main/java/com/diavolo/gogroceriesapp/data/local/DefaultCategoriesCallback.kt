@@ -1,22 +1,21 @@
 package com.diavolo.gogroceriesapp.data.local
 
-import com.diavolo.gogroceriesapp.data.local.dao.CategoryDao
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.diavolo.gogroceriesapp.data.local.entity.CategoryEntity
-import javax.inject.Inject
 
-class DefaultCategorySeeder @Inject constructor(
-    private val categoryDao: CategoryDao
-) {
-    suspend fun seed() {
-        val existingNames = categoryDao.getNames()
-            .map { it.trim().lowercase() }
-            .toSet()
-        val missingCategories = DEFAULT_CATEGORIES.filterNot { category ->
-            category.name.lowercase() in existingNames
-        }
+/**
+ * Inserts [DEFAULT_CATEGORIES] once, when the database file is first created. After that the
+ * categories belong to the user, so a renamed or deleted default is never brought back.
+ */
+class DefaultCategoriesCallback : RoomDatabase.Callback() {
 
-        if (missingCategories.isNotEmpty()) {
-            categoryDao.insertAll(missingCategories)
+    override fun onCreate(db: SupportSQLiteDatabase) {
+        DEFAULT_CATEGORIES.forEach { category ->
+            db.execSQL(
+                "INSERT INTO categories (name, colorHex, aisleOrder) VALUES (?, ?, ?)",
+                arrayOf(category.name, category.colorHex, category.aisleOrder)
+            )
         }
     }
 }

@@ -9,6 +9,9 @@ data object Home
 data object Analytics
 
 @Serializable
+data object Categories
+
+@Serializable
 data class ListDetail(val listId: Long)
 
 @Serializable

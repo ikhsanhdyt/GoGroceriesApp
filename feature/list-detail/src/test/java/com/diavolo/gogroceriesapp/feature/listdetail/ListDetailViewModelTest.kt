@@ -230,6 +230,10 @@ class ListDetailViewModelTest {
         override fun observeCategories(): Flow<List<Category>> = flowOf(emptyList())
 
         override suspend fun insertCategory(category: Category): Long = 1
+
+        override suspend fun updateCategory(category: Category) = Unit
+
+        override suspend fun deleteCategory(id: Long) = Unit
     }
 
     private companion object {

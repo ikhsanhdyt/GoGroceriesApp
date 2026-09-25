@@ -21,4 +21,12 @@ class CategoryRepositoryImpl @Inject constructor(
 
     override suspend fun insertCategory(category: Category): Long =
         categoryDao.insert(category.toEntity())
+
+    // Must stay an UPDATE: insert() uses REPLACE, which deletes the row first and makes the
+    // ON DELETE SET_NULL foreign key detach every item from this category.
+    override suspend fun updateCategory(category: Category) =
+        categoryDao.update(category.toEntity())
+
+    override suspend fun deleteCategory(id: Long) =
+        categoryDao.delete(id)
 }

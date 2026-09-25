@@ -2,6 +2,7 @@ package com.diavolo.gogroceriesapp.di
 
 import android.content.Context
 import androidx.room.Room
+import com.diavolo.gogroceriesapp.data.local.DefaultCategoriesCallback
 import com.diavolo.gogroceriesapp.data.local.GroceryDatabase
 import com.diavolo.gogroceriesapp.data.local.dao.CategoryDao
 import com.diavolo.gogroceriesapp.data.local.dao.GroceryItemDao
@@ -24,7 +25,9 @@ object DatabaseModule {
             ctx,
             GroceryDatabase::class.java,
             "groceries.db"
-        ).build()
+        )
+            .addCallback(DefaultCategoriesCallback())
+            .build()
     }
 
     @Provides

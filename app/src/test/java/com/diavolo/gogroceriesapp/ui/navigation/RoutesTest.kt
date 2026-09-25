@@ -19,6 +19,13 @@ class RoutesTest {
     }
 
     @Test
+    fun `routes without an argument round trip through serialization`() {
+        assertEquals(Home, roundTrip(Home, Home.serializer()))
+        assertEquals(Analytics, roundTrip(Analytics, Analytics.serializer()))
+        assertEquals(Categories, roundTrip(Categories, Categories.serializer()))
+    }
+
+    @Test
     fun `the list id is the only argument`() {
         assertEquals("""{"listId":42}""", Json.encodeToString(ListDetail.serializer(), ListDetail(42)))
     }
