@@ -74,6 +74,7 @@ import com.diavolo.gogroceriesapp.core.navigation.navargs.listdetail.ListDetailN
 import com.diavolo.gogroceriesapp.core.navigation.navargs.tripsummary.TripSummaryNavArgs
 import com.diavolo.gogroceriesapp.core.ui.LoadingStateContent
 import com.diavolo.gogroceriesapp.core.ui.MessageStateContent
+import com.diavolo.gogroceriesapp.core.ui.util.ListUtil.VerticalLastItemAlwaysBottom
 import com.diavolo.gogroceriesapp.feature.listdetail.component.DeleteItemDialog
 import com.diavolo.gogroceriesapp.feature.listdetail.component.ItemFormSheet
 import com.diavolo.gogroceriesapp.feature.listdetail.component.formatQuantity
@@ -222,6 +223,7 @@ fun ListDetailScreen(
                 uiState.list.status != ListStatus.Archived
             ) {
                 ExtendedFloatingActionButton(
+                    modifier = Modifier.padding(bottom = 72.dp),
                     onClick = onAddItemClick,
                     icon = {
                         Icon(Icons.Outlined.Add, contentDescription = null)
@@ -284,7 +286,9 @@ private fun DetailContent(
             end = 20.dp,
             bottom = contentPadding.calculateBottomPadding() + 24.dp
         ),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = if (uiState.itemGroups.isNotEmpty()) VerticalLastItemAlwaysBottom else Arrangement.spacedBy(
+            16.dp
+        ),
     ) {
         item(key = "summary") {
             ListSummaryCard(
