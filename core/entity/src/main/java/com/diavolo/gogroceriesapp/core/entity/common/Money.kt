@@ -1,0 +1,35 @@
+package com.diavolo.gogroceriesapp.core.entity.common
+
+import kotlin.math.roundToLong
+
+@JvmInline
+value class Money(val rupiah: Long) {
+    operator fun plus(other: Money): Money = Money(rupiah + other.rupiah)
+
+    val toDouble: Double
+        get() = rupiah.toDouble()
+
+    override fun toString(): String {
+        val sign = if (rupiah < 0) "-" else ""
+        // removePrefix instead of abs(): abs(Long.MIN_VALUE) overflows.
+        val formatted = rupiah.toString()
+            .removePrefix("-")
+            .reversed()
+            .chunked(3)
+            .joinToString(".")
+            .reversed()
+        return "${sign}Rp $formatted"
+    }
+
+    companion object {
+        fun fromRupiah(rupiah: Double): Money {
+            return Money(rupiah.roundToLong())
+        }
+
+        fun zero(): Money = Money(0)
+    }
+}
+
+fun Long.toMoney(): Money = Money(this)
+
+fun Double.toMoney(): Money = Money.fromRupiah(this)

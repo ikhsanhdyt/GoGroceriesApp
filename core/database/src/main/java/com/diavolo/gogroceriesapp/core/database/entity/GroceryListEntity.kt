@@ -1,0 +1,15 @@
+package com.diavolo.gogroceriesapp.core.database.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "grocery_lists")
+data class GroceryListEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val status: String,
+    val budgetRupiah: Long?,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val completedAt: Long? = null
+)

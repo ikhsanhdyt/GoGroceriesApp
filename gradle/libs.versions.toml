@@ -22,7 +22,12 @@ mlkit-text-recognition = "16.0.1"
 activity-compose = "1.8.2"
 
 [libraries]
+# Gradle plugins used by build-logic
+android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidx-lifecycle" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
@@ -65,3 +70,12 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrains-kotlin-jvm" }
+
+# Convention plugins from build-logic
+gogroceries-android-application = { id = "gogroceries.android.application" }
+gogroceries-android-core = { id = "gogroceries.android.core" }
+gogroceries-android-compose = { id = "gogroceries.android.compose" }
+gogroceries-android-hilt = { id = "gogroceries.android.hilt" }
+gogroceries-android-api = { id = "gogroceries.android.api" }
+gogroceries-android-feature = { id = "gogroceries.android.feature" }
+gogroceries-jvm-library = { id = "gogroceries.jvm.library" }

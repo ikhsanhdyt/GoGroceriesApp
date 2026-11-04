@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google {
             mavenContent {
@@ -27,10 +28,16 @@ dependencyResolutionManagement {
 
 rootProject.name = "GoGroceriesApp"
 include(":app")
+
+include(":core:common")
+include(":core:entity")
+include(":core:database")
+include(":core:navigation")
 include(":core:ui")
-include(":core:util")
-include(":domain")
-include(":data")
+
+include(":api:category")
+include(":api:grocerylist")
+
 include(":feature:home")
 include(":feature:categories")
 include(":feature:list-detail")

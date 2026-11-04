@@ -1,47 +1,13 @@
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt)
-}
-
-android {
-    namespace = "com.diavolo.gogroceriesapp.feature.analytics"
-    compileSdk = 35
-
-    defaultConfig {
-        minSdk = 26
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlin {
-        jvmToolchain(17)
-    }
-
-    buildFeatures {
-        compose = true
-    }
+    alias(libs.plugins.gogroceries.android.feature)
 }
 
 dependencies {
-    implementation(project(":domain"))
-    implementation(project(":core:util"))
+    implementation(project(":core:common"))
+    implementation(project(":core:entity"))
+    implementation(project(":core:navigation"))
     implementation(project(":core:ui"))
 
-    implementation(platform(libs.compose.bom))
-    implementation(libs.compose.ui)
-    implementation(libs.compose.material3)
-    implementation(libs.compose.material3.icon)
-    implementation(libs.androidx.lifecycle.runtime.compose)
-
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
-
-    implementation(libs.kotlinx.coroutines.android)
+    implementation(project(":api:category"))
+    implementation(project(":api:grocerylist"))
 }
