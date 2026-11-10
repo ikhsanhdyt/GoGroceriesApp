@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.diavolo.gogroceriesapp.core.entity.category.Category
 import com.diavolo.gogroceriesapp.core.entity.grocery.GroceryItem
 import com.diavolo.gogroceriesapp.core.entity.grocery.UnitOfMeasure
-import com.diavolo.gogroceriesapp.core.ui.AppTextField
+import com.diavolo.gogroceriesapp.core.ui.component.AppTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,11 +1,12 @@
 package com.diavolo.gogroceriesapp.core.ui
 
 import androidx.compose.ui.text.AnnotatedString
+import com.diavolo.gogroceriesapp.core.ui.component.AppTextFieldCurrency
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Covers [AppTextFieldCurrency], the currency filter/formatter used by [AppTextField] via
+ * Covers [com.diavolo.gogroceriesapp.core.ui.component.AppTextFieldCurrency], the currency filter/formatter used by [com.diavolo.gogroceriesapp.core.ui.component.AppTextField] via
  * `isCurrency = true`.
  */
 class AppTextFieldCurrencyTest {

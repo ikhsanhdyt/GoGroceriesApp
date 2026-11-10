@@ -1,4 +1,4 @@
-package com.diavolo.gogroceriesapp.core.ui
+package com.diavolo.gogroceriesapp.core.ui.component
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth

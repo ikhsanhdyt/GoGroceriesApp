@@ -1,10 +1,11 @@
 package com.diavolo.gogroceriesapp.core.ui
 
+import com.diavolo.gogroceriesapp.core.ui.component.AppTextFieldDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Covers [AppTextFieldDecimal], the decimal filter used by [AppTextField] via
+ * Covers [com.diavolo.gogroceriesapp.core.ui.component.AppTextFieldDecimal], the decimal filter used by [com.diavolo.gogroceriesapp.core.ui.component.AppTextField] via
  * `isDecimal = true` (e.g. quantity fields).
  */
 class AppTextFieldDecimalTest {

@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import com.diavolo.gogroceriesapp.core.ui.AppTextField
+import com.diavolo.gogroceriesapp.core.ui.component.AppTextField
 
 @PreviewLightDark
 @Composable

@@ -79,7 +79,8 @@ import com.diavolo.gogroceriesapp.core.navigation.action.navigateTo
 import com.diavolo.gogroceriesapp.core.navigation.navargs.analytics.AnalyticsNavArgs
 import com.diavolo.gogroceriesapp.core.navigation.navargs.categories.CategoriesNavArgs
 import com.diavolo.gogroceriesapp.core.navigation.navargs.listdetail.ListDetailNavArgs
-import com.diavolo.gogroceriesapp.core.ui.AppTextField
+import com.diavolo.gogroceriesapp.core.ui.component.AppButton
+import com.diavolo.gogroceriesapp.core.ui.component.AppTextField
 import com.diavolo.gogroceriesapp.feature.home.state.HomeUiState
 import com.diavolo.gogroceriesapp.feature.home.viewmodel.HomeEvent
 import com.diavolo.gogroceriesapp.feature.home.viewmodel.HomeViewModel
@@ -287,15 +288,11 @@ private fun EmptyListsContent(
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(24.dp))
-        Button(
-            onClick = onCreateListClick,
+        AppButton(
+            startIcon = Outlined.Add,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Icon(Outlined.Add, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Create your first list")
-        }
+            text = "Create your first list"
+        ) { onCreateListClick() }
     }
 }
 

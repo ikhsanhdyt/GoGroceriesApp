@@ -10,13 +10,14 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextInput
+import com.diavolo.gogroceriesapp.core.ui.component.AppTextField
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
 /**
  * Renders the real composable, so it covers what the unit tests cannot: that `isCurrency` is
- * actually wired into the rendered field, and that the [AppTextField] refactor for it did not
+ * actually wired into the rendered field, and that the [com.diavolo.gogroceriesapp.core.ui.component.AppTextField] refactor for it did not
  * break plain (non-currency) fields.
  */
 class AppTextFieldTest {
